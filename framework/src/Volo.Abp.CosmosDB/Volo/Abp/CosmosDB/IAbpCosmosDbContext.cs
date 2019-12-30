@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿//using System;
+//using System.Collections.Generic;
+//using System.Text;
 
-namespace Volo.Abp.CosmosDB
-{
-    public interface IAbpCosmosDbContext
-    {
-        IMongoDatabase Database { get; }
+//namespace Volo.Abp.CosmosDB
+//{
+//    public interface IAbpCosmosDbContext
+//    {
+//        IMongoDatabase Database { get; }
 
-        IMongoCollection<T> Collection<T>();
-    }
-}
+//        IMongoCollection<T> Collection<T>();
+//    }
+//}
