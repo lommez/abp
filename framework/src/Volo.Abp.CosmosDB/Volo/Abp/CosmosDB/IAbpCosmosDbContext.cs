@@ -1,13 +1,15 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Text;
+﻿using Microsoft.Azure.Cosmos;
+using Volo.Abp.Domain.Entities.CosmosDB;
 
-//namespace Volo.Abp.CosmosDB
-//{
-//    public interface IAbpCosmosDbContext
-//    {
-//        IMongoDatabase Database { get; }
+namespace Volo.Abp.CosmosDB
+{
+    public interface IAbpCosmosDBContext
+    {
+        Database Database { get; }
 
-//        IMongoCollection<T> Collection<T>();
-//    }
-//}
+        CosmosClient CosmosClient { get; }
+
+        ICosmosDBCollection<TEntity> Collection<TEntity>()
+            where TEntity : class, ICosmosDBEntity;
+    }
+}

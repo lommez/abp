@@ -1,45 +1,52 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Text;
+﻿using Microsoft.Azure.Cosmos;
+using System.Collections.Generic;
+using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Entities.CosmosDB;
 
-//namespace Volo.Abp.CosmosDB
-//{
-//    public abstract class AbpMongoDbContext : IAbpMongoDbContext, ITransientDependency
-//    {
-//        public IMongoModelSource ModelSource { get; set; }
+namespace Volo.Abp.CosmosDB
+{
+    public abstract class AbpCosmosDBContext : IAbpCosmosDBContext, ITransientDependency
+    {
+        public ICosmosDBModelSource ModelSource { get; set; }
 
-//        public IMongoDatabase Database { get; private set; }
+        public Database Database { get; private set; }
 
-//        protected internal virtual void CreateModel(IMongoModelBuilder modelBuilder)
-//        {
+        public CosmosClient CosmosClient { get; private set; }
 
-//        }
+        protected internal virtual void CreateModel(ICosmosDBModelBuilder modelBuilder)
+        {
+        }
 
-//        public virtual void InitializeDatabase(IMongoDatabase database)
-//        {
-//            Database = database;
-//        }
+        public virtual void InitializeDatabase(CosmosClient cosmosClient, Database database)
+        {
+            CosmosClient = cosmosClient;
+            Database = database;
+        }
 
-//        public virtual IMongoCollection<T> Collection<T>()
-//        {
-//            return Database.GetCollection<T>(GetCollectionName<T>());
-//        }
+        public virtual ICosmosDBCollection<TEntity> Collection<TEntity>()
+            where TEntity : class, ICosmosDBEntity
+        {
+            var collectionName = GetCollectionName<TEntity>();
+            var collection = new CosmosDBCollection<TEntity>(Database, collectionName);
+            return collection;
+        }
 
-//        protected virtual string GetCollectionName<T>()
-//        {
-//            return GetEntityModel<T>().CollectionName;
-//        }
+        public virtual string GetCollectionName<TEntity>()
+            where TEntity : class, ICosmosDBEntity
+        {
+            return GetEntityModel<TEntity>().CollectionName;
+        }
 
-//        protected virtual IMongoEntityModel GetEntityModel<TEntity>()
-//        {
-//            var model = ModelSource.GetModel(this).Entities.GetOrDefault(typeof(TEntity));
+        public virtual ICosmosDBEntityModel GetEntityModel<TEntity>()
+        {
+            var model = ModelSource.GetModel(this).Entities.GetOrDefault(typeof(TEntity));
 
-//            if (model == null)
-//            {
-//                throw new AbpException("Could not find a model for given entity type: " + typeof(TEntity).AssemblyQualifiedName);
-//            }
+            if (model == null)
+            {
+                throw new AbpException("Could not find a model for given entity type: " + typeof(TEntity).AssemblyQualifiedName);
+            }
 
-//            return model;
-//        }
-//    }
-//}
+            return model;
+        }
+    }
+}

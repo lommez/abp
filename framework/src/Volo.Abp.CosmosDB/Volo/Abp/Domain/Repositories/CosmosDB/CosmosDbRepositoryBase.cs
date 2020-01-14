@@ -11,8 +11,8 @@ using Volo.Abp.MultiTenancy;
 
 namespace Volo.Abp.Domain.Repositories.CosmosDB
 {
-    public abstract class CosmosDbRepositoryBase<TEntity> : BasicCosmosDbRepositoryBase<TEntity>, ICosmosDbRepository<TEntity>
-        where TEntity : class, ICosmosDbEntity
+    public abstract class CosmosDBRepositoryBase<TEntity> : BasicCosmosDBRepositoryBase<TEntity>, ICosmosDBRepository<TEntity>
+        where TEntity : class, ICosmosDBEntity
     {
         public IDataFilter DataFilter { get; set; }
 

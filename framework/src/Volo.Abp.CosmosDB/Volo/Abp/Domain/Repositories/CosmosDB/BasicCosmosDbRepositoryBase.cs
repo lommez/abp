@@ -10,18 +10,18 @@ using Volo.Abp.Uow;
 
 namespace Volo.Abp.Domain.Repositories.CosmosDB
 {
-    public abstract class BasicCosmosDbRepositoryBase<TEntity> :
-        IBasicCosmosDbRepository<TEntity>,
+    public abstract class BasicCosmosDBRepositoryBase<TEntity> :
+        IBasicCosmosDBRepository<TEntity>,
         IServiceProviderAccessor,
         IUnitOfWorkEnabled,
         ITransientDependency
-        where TEntity : class, ICosmosDbEntity
+        where TEntity : class, ICosmosDBEntity
     {
         public IServiceProvider ServiceProvider { get; set; }
 
         public ICancellationTokenProvider CancellationTokenProvider { get; set; }
 
-        protected BasicCosmosDbRepositoryBase()
+        protected BasicCosmosDBRepositoryBase()
         {
             CancellationTokenProvider = NullCancellationTokenProvider.Instance;
         }
@@ -67,28 +67,28 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             return Task.FromResult(GetCount());
         }
 
-        public virtual TEntity Get(TEntity entity)
+        public virtual TEntity Get(string id)
         {
-            var entityFound = Find(entity);
+            var entityFound = Find(id);
 
             if (entityFound == null)
             {
-                throw new EntityNotFoundException(typeof(TEntity), entity);
+                throw new EntityNotFoundException(typeof(TEntity), id);
             }
 
             return entityFound;
         }
 
-        public virtual Task<TEntity> GetAsync(TEntity entity, CancellationToken cancellationToken = default)
+        public virtual Task<TEntity> GetAsync(string id, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(Get(entity));
+            return Task.FromResult(Get(id));
         }
 
-        public abstract TEntity Find(TEntity entity);
+        public abstract TEntity Find(string id);
 
-        public virtual Task<TEntity> FindAsync(TEntity entity, CancellationToken cancellationToken = default)
+        public virtual Task<TEntity> FindAsync(string id, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(Find(entity));
+            return Task.FromResult(Find(id));
         }
     }
 }

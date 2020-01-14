@@ -1,12 +1,66 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Volo.Abp.Domain.Entities;
+﻿using Microsoft.Azure.Cosmos;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Volo.Abp.Domain.Entities.CosmosDB;
 
 namespace Volo.Abp.CosmosDB
 {
-    public class CosmosDbCollection<TDocument> : ICosmosDbCollection<TDocument>
-        where TDocument: class, IEntity<string>
+    public class CosmosDBCollection<TEntity> : ICosmosDBCollection<TEntity>
+        where TEntity : class, ICosmosDBEntity
     {
+        private readonly Container _container;
+
+        public CosmosDBCollection(Database database, string collectionName)
+        {
+            _container = database.GetContainer(collectionName);
+        }
+
+        public async Task<TEntity> ReadDocumentAsync(
+            string entityId,
+            PartitionKey partitionKey,
+            ItemRequestOptions itemRequestOptions = null,
+            CancellationToken cancellationToken = default)
+        {
+            var document = await _container.ReadItemAsync<TEntity>(entityId, partitionKey, itemRequestOptions, cancellationToken);
+            return document.Resource;
+        }
+
+        public async Task<TEntity> CreateDocumentAsync(
+            TEntity entity,
+            PartitionKey partitionKey,
+            ItemRequestOptions itemRequestOptions = null,
+            bool disableAutomaticIdGeneration = false,
+            CancellationToken cancellationToken = default)
+        {
+            var document = await _container.CreateItemAsync(entity, partitionKey, itemRequestOptions, cancellationToken);
+            return document.Resource;
+        }
+
+        public async Task<TEntity> ReplaceDocumentAsync(
+            TEntity entity,
+            string entityId,
+            PartitionKey partitionKey,
+            ItemRequestOptions itemRequestOptions = null,
+            CancellationToken cancellationToken = default)
+        {
+            var document = await _container.ReplaceItemAsync(entity, entityId, partitionKey, itemRequestOptions, cancellationToken);
+            return document.Resource;
+        }
+
+        public async Task<TEntity> DeleteDocumentAsync(
+            string entityId,
+            PartitionKey partitionKey,
+            ItemRequestOptions itemRequestOptions = null,
+            CancellationToken cancellationToken = default)
+        {
+            var document = await _container.DeleteItemAsync<TEntity>(entityId, partitionKey, itemRequestOptions, cancellationToken);
+            return document.Resource;
+        }
+
+        public IOrderedQueryable<TEntity> GetQueryable(QueryRequestOptions queryRequestOptions = null)
+        {
+            return _container.GetItemLinqQueryable<TEntity>(requestOptions: queryRequestOptions);
+        }
     }
 }

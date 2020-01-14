@@ -6,8 +6,8 @@ using Volo.Abp.Domain.Entities.CosmosDB;
 
 namespace Volo.Abp.Domain.Repositories.CosmosDB
 {
-    public interface IReadOnlyBasicCosmosDbRepository<TEntity> : IRepository
-        where TEntity : class, ICosmosDbEntity
+    public interface IReadOnlyBasicCosmosDBRepository<TEntity> : IRepository
+        where TEntity : class, ICosmosDBEntity
     {
         /// <summary>
         /// Gets a list of all the entities.
@@ -39,7 +39,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// <param name="id">Primary key of the entity to get</param>
         /// <returns>Entity</returns>
         [NotNull]
-        TEntity Get(TEntity entity);
+        TEntity Get(string id);
 
         /// <summary>
         /// Gets an entity with given primary key.
@@ -49,7 +49,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
         /// <returns>Entity</returns>
         [NotNull]
-        Task<TEntity> GetAsync(TEntity entity, CancellationToken cancellationToken = default);
+        Task<TEntity> GetAsync(string id, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets an entity with given primary key or null if not found.
@@ -57,7 +57,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// <param name="id">Primary key of the entity to get</param>
         /// <returns>Entity or null</returns>
         [CanBeNull]
-        TEntity Find(TEntity entity);
+        TEntity Find(string id);
 
         /// <summary>
         /// Gets an entity with given primary key or null if not found.
@@ -65,6 +65,6 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// <param name="id">Primary key of the entity to get</param>
         /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
         /// <returns>Entity or null</returns>
-        Task<TEntity> FindAsync(TEntity entity, CancellationToken cancellationToken = default);
+        Task<TEntity> FindAsync(string id, CancellationToken cancellationToken = default);
     }
 }

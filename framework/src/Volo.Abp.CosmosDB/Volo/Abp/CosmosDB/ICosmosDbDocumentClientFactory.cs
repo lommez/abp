@@ -1,10 +1,10 @@
-﻿using Microsoft.Azure.Documents;
-using Volo.Abp.DependencyInjection;
+﻿//using Microsoft.Azure.Documents;
+//using Volo.Abp.DependencyInjection;
 
-namespace Volo.Abp.CosmosDB
-{
-    public interface ICosmosDbDocumentClientFactory : ITransientDependency
-    {
-        IDocumentClient CreateDocumentClient();
-    }
-}
+//namespace Volo.Abp.CosmosDB
+//{
+//    public interface ICosmosDBDocumentClientFactory : ITransientDependency
+//    {
+//        IDocumentClient CreateDocumentClient();
+//    }
+//}

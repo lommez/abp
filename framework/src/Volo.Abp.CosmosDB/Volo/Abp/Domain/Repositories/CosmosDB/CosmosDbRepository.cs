@@ -1,9 +1,9 @@
-﻿using Microsoft.Azure.Documents;
-using Microsoft.Azure.Documents.Client;
+﻿using Microsoft.Azure.Cosmos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Volo.Abp.Auditing;
@@ -19,16 +19,19 @@ using Volo.Abp.Threading;
 
 namespace Volo.Abp.Domain.Repositories.CosmosDB
 {
-    public class CosmosDbRepository<TEntity> : CosmosDbRepositoryBase<TEntity>, ICosmosDbRepository<TEntity>
-        where TEntity : class, ICosmosDbEntity
+    public class CosmosDBRepository<TCosmosDBContext, TEntity> : CosmosDBRepositoryBase<TEntity>, ICosmosDBRepository<TEntity>
+        where TCosmosDBContext : IAbpCosmosDBContext
+        where TEntity : class, ICosmosDBEntity
     {
-        private readonly ICosmosDbDocumentClientFactory _cosmosDbDocumentClientFactory;
-
-        private readonly IDocumentClient _documentClient;
-
         protected string DatabaseName { get; set; }
 
         protected string CollectionName { get; set; }
+
+        public virtual ICosmosDBCollection<TEntity> Collection => DbContext.Collection<TEntity>();
+
+        public virtual TCosmosDBContext DbContext => DbContextProvider.GetDbContext();
+
+        protected ICosmosDBContextProvider<TCosmosDBContext> DbContextProvider { get; }
 
         public ILocalEventBus LocalEventBus { get; set; }
 
@@ -40,14 +43,15 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         public IAuditPropertySetter AuditPropertySetter { get; set; }
 
-        protected CosmosDbRepository(ICosmosDbDocumentClientFactory cosmosDbDocumentClientFactory)
+        public PartitionKey PartitionKey { get; set; }
+
+        public CosmosDBRepository(ICosmosDBContextProvider<TCosmosDBContext> dbContextProvider)
         {
+            DbContextProvider = dbContextProvider;
+
             LocalEventBus = NullLocalEventBus.Instance;
             DistributedEventBus = NullDistributedEventBus.Instance;
             EntityChangeEventHelper = NullEntityChangeEventHelper.Instance;
-
-            _cosmosDbDocumentClientFactory = cosmosDbDocumentClientFactory;
-            _documentClient = _cosmosDbDocumentClientFactory.CreateDocumentClient();
         }
 
         public override void Delete(TEntity entity)
@@ -60,9 +64,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             }
             else
             {
-                var uri = UriFactory.CreateDocumentUri(DatabaseName, CollectionName, entity.Id);
-                var requestOptions = new RequestOptions { PartitionKey = new PartitionKey(entity.PartitionKey) };
-                _documentClient.DeleteDocumentAsync(uri, requestOptions).GetAwaiter().GetResult();
+                Collection.DeleteDocumentAsync(entity.Id, PartitionKey).GetAwaiter().GetResult();
             }
         }
 
@@ -88,18 +90,22 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             }
             else
             {
-                var uri = UriFactory.CreateDocumentUri(DatabaseName, CollectionName, entity.Id);
-                var requestOptions = new RequestOptions { PartitionKey = new PartitionKey(entity.PartitionKey) };
-                await _documentClient.DeleteDocumentAsync(uri, requestOptions);
+                await Collection.DeleteDocumentAsync(entity.Id, PartitionKey, null, cancellationToken);
             }
         }
 
-        public override TEntity Find(TEntity entity)
+        public override TEntity Find(string id)
         {
-            var uri = UriFactory.CreateDocumentUri(DatabaseName, CollectionName, entity.Id);
-            var requestOptions = new RequestOptions { PartitionKey = new PartitionKey(entity.PartitionKey) };
-            Document document = _documentClient.ReadDocumentAsync(uri, requestOptions).GetAwaiter().GetResult();
-            return (TEntity)(dynamic)document;
+            TEntity document = null;
+            try
+            {
+                // Read the item to see if it exists.
+                document = Collection.ReadDocumentAsync(id, PartitionKey).GetAwaiter().GetResult();
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+            }
+            return document;
         }
 
         public override long GetCount()
@@ -125,9 +131,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         protected override IQueryable<TEntity> GetQueryable()
         {
-            var uri = UriFactory.CreateDocumentCollectionUri(DatabaseName, CollectionName);
-            var feedOptions = new FeedOptions { MaxItemCount = -1, EnableCrossPartitionQuery = true };
-            var query = _documentClient.CreateDocumentQuery<TEntity>(uri, feedOptions);
+            var query = Collection.GetQueryable();
             return query;
         }
 
@@ -135,22 +139,16 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         {
             AsyncHelper.RunSync(() => ApplyAbpConceptsForAddedEntityAsync(entity));
 
-            var uri = UriFactory.CreateDocumentCollectionUri(DatabaseName, CollectionName);
-            var requestOptions = new RequestOptions { PartitionKey = new PartitionKey(entity.PartitionKey) };
-            var document = _documentClient.CreateDocumentAsync(uri, entity, requestOptions).GetAwaiter().GetResult();
-
-            return (TEntity)(dynamic)document;
+            var document = Collection.CreateDocumentAsync(entity, PartitionKey).GetAwaiter().GetResult();
+            return document;
         }
 
         public override async Task<TEntity> InsertAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
             await ApplyAbpConceptsForAddedEntityAsync(entity);
 
-            var uri = UriFactory.CreateDocumentCollectionUri(DatabaseName, CollectionName);
-            var requestOptions = new RequestOptions { PartitionKey = new PartitionKey(entity.PartitionKey) };
-            var document = _documentClient.CreateDocumentAsync(uri, entity, requestOptions, cancellationToken: GetCancellationToken(cancellationToken));
-
-            return (TEntity)(dynamic)document;
+            var document = await Collection.CreateDocumentAsync(entity, PartitionKey);
+            return document;
         }
 
         public override TEntity Update(TEntity entity)
@@ -170,10 +168,8 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
             AsyncHelper.RunSync(() => TriggerDomainEventsAsync(entity));
 
-            var uri = UriFactory.CreateDocumentUri(DatabaseName, CollectionName, entity.Id);
-            var document = _documentClient.ReplaceDocumentAsync(uri, entity).GetAwaiter().GetResult();
-
-            return (TEntity)(dynamic)document;
+            var document = Collection.ReplaceDocumentAsync(entity, entity.Id, PartitionKey).GetAwaiter().GetResult();
+            return document;
         }
 
         public override async Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -193,8 +189,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
             await TriggerDomainEventsAsync(entity);
 
-            var uri = UriFactory.CreateDocumentUri(DatabaseName, CollectionName, entity.Id);
-            var document = _documentClient.ReplaceDocumentAsync(uri, entity, cancellationToken: GetCancellationToken(cancellationToken));
+            var document = Collection.ReplaceDocumentAsync(entity, entity.Id, PartitionKey, cancellationToken: GetCancellationToken(cancellationToken));
 
             return (TEntity)(dynamic)document;
         }
@@ -234,13 +229,13 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         protected virtual void CheckAndSetId(TEntity entity)
         {
-            if (entity is IEntity<Guid> entityWithGuidId)
+            if (entity is ICosmosDBEntity entityWithGuidId)
             {
                 TrySetGuidId(entityWithGuidId);
             }
         }
 
-        protected virtual void TrySetGuidId(IEntity<Guid> entity)
+        protected virtual void TrySetGuidId(ICosmosDBEntity entity)
         {
             if (entity.Id != default)
             {
@@ -249,7 +244,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
             EntityHelper.TrySetId(
                 entity,
-                () => GuidGenerator.Create(),
+                () => GuidGenerator.Create().ToString(),
                 true
             );
         }

@@ -1,54 +1,58 @@
-﻿using Microsoft.Azure.Documents;
-using Microsoft.Azure.Documents.Client;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+﻿//using Microsoft.Azure.Cosmos;
+//using System;
+//using System.Threading;
+//using System.Threading.Tasks;
 
-namespace Volo.Abp.CosmosDB
-{
-    public class CosmosDbClient : ICosmosDbClient
-    {
-        private readonly string _databaseName;
-        private readonly string _collectionName;
-        private readonly IDocumentClient _documentClient;
+//namespace Volo.Abp.CosmosDB
+//{
+//    public class CosmosDBClient : ICosmosDBClient
+//    {
+//        private readonly string _databaseName;
+//        private readonly string _containerName;
+//        private readonly CosmosClient _cosmosClient;
+//        private readonly Container _container;
 
-        public CosmosDbClient(string databaseName, string collectionName, IDocumentClient documentClient)
-        {
-            _databaseName = databaseName ?? throw new ArgumentNullException(nameof(databaseName));
-            _collectionName = collectionName ?? throw new ArgumentNullException(nameof(collectionName));
-            _documentClient = documentClient ?? throw new ArgumentNullException(nameof(documentClient));
-        }
+//        public CosmosDBClient(string databaseName, string containerName, CosmosClient cosmosClient)
+//        {
+//            _databaseName = databaseName ?? throw new ArgumentNullException(nameof(databaseName));
+//            _containerName = containerName ?? throw new ArgumentNullException(nameof(containerName));
+//            _cosmosClient = cosmosClient ?? throw new ArgumentNullException(nameof(cosmosClient));
+//            _container = _cosmosClient.GetContainer(_databaseName, _containerName);
+//        }
 
-        public async Task<Document> ReadDocumentAsync(string documentId, RequestOptions options = null,
-            CancellationToken cancellationToken = default(CancellationToken))
-        {            
-            return await _documentClient.ReadDocumentAsync(
-                UriFactory.CreateDocumentUri(_databaseName, _collectionName, documentId), options, cancellationToken);
-        }
+//        public async Task<Document> ReadDocumentAsync<Document>(string documentId, PartitionKey partitionKey, RequestOptions options = null,
+//            CancellationToken cancellationToken = default(CancellationToken))
+//        {
+//            _container.
+//            return await _container.ReadItemAsync<Document>(documentId, options, cancellationToken);
 
-        public async Task<Document> CreateDocumentAsync(object document, RequestOptions options = null,
-            bool disableAutomaticIdGeneration = false, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            return await _documentClient.CreateDocumentAsync(
-                UriFactory.CreateDocumentCollectionUri(_databaseName, _collectionName), document, options,
-                disableAutomaticIdGeneration, cancellationToken);
-        }
+//            return await _documentClient.ReadDocumentAsync(
+//                UriFactory.CreateDocumentUri(_databaseName, _collectionName, documentId), options, cancellationToken);
+//        }
 
-        public async Task<Document> ReplaceDocumentAsync(string documentId, object document,
-            RequestOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
-        {            
-            var result = await _documentClient.ReplaceDocumentAsync(
-                UriFactory.CreateDocumentUri(_databaseName, _collectionName, documentId), document, options,
-                cancellationToken);
+//        public async Task<Document> CreateDocumentAsync(object document, RequestOptions options = null,
+//            bool disableAutomaticIdGeneration = false, CancellationToken cancellationToken = default(CancellationToken))
+//        {
+//            return await _documentClient.CreateDocumentAsync(
+//                UriFactory.CreateDocumentCollectionUri(_databaseName, _collectionName), document, options,
+//                disableAutomaticIdGeneration, cancellationToken);
+//        }
 
-            return result;
-        }
+//        public async Task<Document> ReplaceDocumentAsync(string documentId, object document,
+//            RequestOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
+//        {            
+//            var result = await _documentClient.ReplaceDocumentAsync(
+//                UriFactory.CreateDocumentUri(_databaseName, _collectionName, documentId), document, options,
+//                cancellationToken);
 
-        public async Task<Document> DeleteDocumentAsync(string documentId, RequestOptions options = null,
-            CancellationToken cancellationToken = default(CancellationToken))
-        {
-            return await _documentClient.DeleteDocumentAsync(
-                UriFactory.CreateDocumentUri(_databaseName, _collectionName, documentId), options, cancellationToken);
-        }
-    }
-}
+//            return result;
+//        }
+
+//        public async Task<Document> DeleteDocumentAsync(string documentId, RequestOptions options = null,
+//            CancellationToken cancellationToken = default(CancellationToken))
+//        {
+//            return await _documentClient.DeleteDocumentAsync(
+//                UriFactory.CreateDocumentUri(_databaseName, _collectionName, documentId), options, cancellationToken);
+//        }
+//    }
+//}

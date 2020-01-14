@@ -1,8 +1,5 @@
 ﻿using JetBrains.Annotations;
-using Microsoft.Azure.Documents;
-using Microsoft.Azure.Documents.Client;
 using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,8 +7,8 @@ using Volo.Abp.Domain.Entities.CosmosDB;
 
 namespace Volo.Abp.Domain.Repositories.CosmosDB
 {
-    public interface ICosmosDbRepository<TEntity> : IReadOnlyCosmosDbRepository<TEntity>, IBasicCosmosDbRepository<TEntity>
-        where TEntity : class, ICosmosDbEntity
+    public interface ICosmosDBRepository<TEntity> : IReadOnlyCosmosDBRepository<TEntity>, IBasicCosmosDBRepository<TEntity>
+        where TEntity : class, ICosmosDBEntity
     {
         /// <summary>
         /// Deletes many entities by function.
@@ -28,7 +25,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// This may cause major performance problems if there are too many entities with
         /// given predicate.
         /// </summary>
-        /// <param name="predicate">A condition to filter entities</param>        
+        /// <param name="predicate">A condition to filter entities</param>
         /// Set true to automatically save changes to database.
         /// This is useful for ORMs / database APIs those only save changes with an explicit method call, but you need to immediately save changes to the database.
         /// </param>
@@ -45,7 +42,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         //Task<Document> CreateItemAsync(TEntity entity);
 
-        //Task<Document> CreateItemAsync(TEntity entity, RequestOptions options);        
+        //Task<Document> CreateItemAsync(TEntity entity, RequestOptions options);
 
         //Task<ResourceResponse<Attachment>> CreateAttachmentAsync(string attachmentsLink, object attachment, RequestOptions options);
 

@@ -1,26 +1,28 @@
-﻿//using System;
-//using Microsoft.Extensions.DependencyInjection.Extensions;
-//using Volo.Abp.MongoDB;
-//using Volo.Abp.MongoDB.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+using System;
+using Volo.Abp.CosmosDB;
+using Volo.Abp.CosmosDB.DependencyInjection;
 
-//namespace Microsoft.Extensions.DependencyInjection
-//{
-//    public static class AbpCosmosDbServiceCollectionExtensions
-//    {
-//        public static IServiceCollection AddMongoDbContext<TMongoDbContext>(this IServiceCollection services, Action<IAbpMongoDbContextRegistrationOptionsBuilder> optionsBuilder = null) //Created overload instead of default parameter
-//            where TMongoDbContext : AbpMongoDbContext
-//        {
-//            var options = new AbpMongoDbContextRegistrationOptions(typeof(TMongoDbContext), services);
-//            optionsBuilder?.Invoke(options);
+namespace Microsoft.Extensions.DependencyInjection
+{
+    public static class AbpCosmosDBServiceCollectionExtensions
+    {
+        public static IServiceCollection AddCosmosDBContext<TCosmosDBContext>(this IServiceCollection services, Action<IAbpCosmosDBContextRegistrationOptionsBuilder> optionsBuilder = null) //Created overload instead of default parameter
+            where TCosmosDBContext : AbpCosmosDBContext
+        {
+            var options = new AbpCosmosDBContextRegistrationOptions(typeof(TCosmosDBContext), services);
+            optionsBuilder?.Invoke(options);
 
-//            foreach (var dbContextType in options.ReplacedDbContextTypes)
-//            {
-//                services.Replace(ServiceDescriptor.Transient(dbContextType, typeof(TMongoDbContext)));
-//            }
+            foreach (var dbContextType in options.ReplacedDbContextTypes)
+            {
+                services.Replace(ServiceDescriptor.Transient(dbContextType, typeof(TCosmosDBContext)));
+            }
 
-//            new MongoDbRepositoryRegistrar(options).AddRepositories();
+            var registrar = new CosmosDBRepositoryRegistrar(options);
+            registrar.AddRepositories();
+            registrar.AddCosmosDbRepositories();
 
-//            return services;
-//        }
-//    }
-//}
+            return services;
+        }
+    }
+}

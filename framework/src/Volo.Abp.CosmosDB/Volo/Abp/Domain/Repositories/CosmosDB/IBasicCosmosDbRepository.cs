@@ -5,8 +5,8 @@ using Volo.Abp.Domain.Entities.CosmosDB;
 
 namespace Volo.Abp.Domain.Repositories.CosmosDB
 {
-    public interface IBasicCosmosDbRepository<TEntity> : IReadOnlyBasicCosmosDbRepository<TEntity>
-        where TEntity : class, ICosmosDbEntity
+    public interface IBasicCosmosDBRepository<TEntity> : IReadOnlyBasicCosmosDBRepository<TEntity>
+        where TEntity : class, ICosmosDBEntity
     {
         /// <summary>
         /// Inserts a new entity.
