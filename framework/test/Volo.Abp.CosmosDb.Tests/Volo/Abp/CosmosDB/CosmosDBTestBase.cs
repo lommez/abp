@@ -1,4 +1,6 @@
-﻿namespace Volo.Abp.CosmosDB
+﻿using Volo.Abp.Testing;
+
+namespace Volo.Abp.CosmosDB
 {
     public abstract class CosmosDBTestBase : AbpIntegratedTest<AbpCosmosDBTestModule>
     {
