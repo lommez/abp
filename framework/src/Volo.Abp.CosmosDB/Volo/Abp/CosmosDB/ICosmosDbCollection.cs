@@ -6,8 +6,8 @@ using Volo.Abp.Domain.Entities.CosmosDB;
 
 namespace Volo.Abp.CosmosDB
 {
-    public interface ICosmosDBCollection<TEntity>
-        where TEntity : class, ICosmosDBEntity
+    public interface ICosmosDBCollection<TEntity, TPartitionKeyType>
+        where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
     {
         Task<TEntity> ReadDocumentAsync(
             string entityId,

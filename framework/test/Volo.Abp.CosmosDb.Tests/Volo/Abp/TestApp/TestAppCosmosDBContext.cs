@@ -1,20 +1,12 @@
 ﻿using Volo.Abp.CosmosDB;
-using Volo.Abp.Data;
 using Volo.Abp.TestApp.Domain;
 
 namespace Volo.Abp.TestApp.CosmosDB
 {
-    [ConnectionStringName("Ofertas")]
     public class TestAppCosmosDBContext : AbpCosmosDBContext, ITestAppCosmosDBContext
     {
         //[CosmosDBCollection("OfertasContainer")] //Intentionally changed the collection name to test it
-        public ICosmosDBCollection<Oferta> Oferta
-        {
-            get
-            {
-                return Collection<Oferta>();
-            }
-        }
+        public ICosmosDBCollection<Oferta, string> Oferta => Collection<Oferta, string>();
 
         protected override void CreateModel(ICosmosDBModelBuilder modelBuilder)
         {

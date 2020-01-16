@@ -38,8 +38,8 @@ namespace Volo.Abp.CosmosDB
             var collectionProperties =
                 from property in dbContextType.GetTypeInfo().GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 where
-                    ReflectionHelper.IsAssignableToGenericType(property.PropertyType, typeof(ICosmosDBCollection<>)) &&
-                    typeof(ICosmosDBEntity).IsAssignableFrom(property.PropertyType.GenericTypeArguments[0])
+                    ReflectionHelper.IsAssignableToGenericType(property.PropertyType, typeof(ICosmosDBCollection<,>)) &&
+                    ReflectionHelper.IsAssignableToGenericType(property.PropertyType.GenericTypeArguments[0], typeof(ICosmosDBEntity<>))
                 select property;
 
             foreach (var collectionProperty in collectionProperties)

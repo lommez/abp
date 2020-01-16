@@ -5,16 +5,9 @@ using Volo.Abp.Domain.Entities.CosmosDB;
 
 namespace Volo.Abp.Domain.Repositories.CosmosDB
 {
-    public interface IBasicCosmosDBRepository<TEntity> : IReadOnlyBasicCosmosDBRepository<TEntity>
-        where TEntity : class, ICosmosDBEntity
+    public interface IBasicCosmosDBRepository<TEntity, TPartitionKeyType> : IReadOnlyBasicCosmosDBRepository<TEntity, TPartitionKeyType>
+        where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
     {
-        /// <summary>
-        /// Inserts a new entity.
-        /// </summary>
-        /// <param name="entity">Inserted entity</param>
-        [NotNull]
-        TEntity Insert([NotNull] TEntity entity);
-
         /// <summary>
         /// Inserts a new entity.
         /// </summary>
@@ -22,13 +15,6 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// <param name="entity">Inserted entity</param>
         [NotNull]
         Task<TEntity> InsertAsync([NotNull] TEntity entity, CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Updates an existing entity.
-        /// </summary>
-        /// <param name="entity">Entity</param>
-        [NotNull]
-        TEntity Update([NotNull] TEntity entity);
 
         /// <summary>
         /// Updates an existing entity.
@@ -42,13 +28,15 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// Deletes an entity.
         /// </summary>
         /// <param name="entity">Entity to be deleted</param>
-        void Delete([NotNull] TEntity entity);
-
-        /// <summary>
-        /// Deletes an entity.
-        /// </summary>
-        /// <param name="entity">Entity to be deleted</param>
         /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
         Task DeleteAsync([NotNull] TEntity entity, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deletes an entity by primary key.
+        /// </summary>
+        /// <param name="id">Primary key of the entity</param>
+        /// <param name="partitionKeyValue">Value of the partition key</param>
+        /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
+        Task DeleteAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default);  //TODO: Return true if deleted
     }
 }

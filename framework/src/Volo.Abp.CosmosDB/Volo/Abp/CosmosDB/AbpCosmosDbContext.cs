@@ -23,16 +23,16 @@ namespace Volo.Abp.CosmosDB
             Database = database;
         }
 
-        public virtual ICosmosDBCollection<TEntity> Collection<TEntity>()
-            where TEntity : class, ICosmosDBEntity
+        public virtual ICosmosDBCollection<TEntity, TPartitionKeyType> Collection<TEntity, TPartitionKeyType>()
+            where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
         {
-            var collectionName = GetCollectionName<TEntity>();
-            var collection = new CosmosDBCollection<TEntity>(Database, collectionName);
+            var collectionName = GetCollectionName<TEntity, TPartitionKeyType>();
+            var collection = new CosmosDBCollection<TEntity, TPartitionKeyType>(Database, collectionName);
             return collection;
         }
 
-        public virtual string GetCollectionName<TEntity>()
-            where TEntity : class, ICosmosDBEntity
+        public virtual string GetCollectionName<TEntity, TPartitionKeyType>()
+            where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
         {
             return GetEntityModel<TEntity>().CollectionName;
         }

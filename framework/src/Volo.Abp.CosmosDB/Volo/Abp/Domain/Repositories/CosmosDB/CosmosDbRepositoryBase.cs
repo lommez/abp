@@ -1,4 +1,5 @@
-﻿using System;
+﻿using JetBrains.Annotations;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,8 +12,8 @@ using Volo.Abp.MultiTenancy;
 
 namespace Volo.Abp.Domain.Repositories.CosmosDB
 {
-    public abstract class CosmosDBRepositoryBase<TEntity> : BasicCosmosDBRepositoryBase<TEntity>, ICosmosDBRepository<TEntity>
-        where TEntity : class, ICosmosDBEntity
+    public abstract class CosmosDBRepositoryBase<TEntity, TPartitionKeyType> : BasicCosmosDBRepositoryBase<TEntity, TPartitionKeyType>, ICosmosDBRepository<TEntity, TPartitionKeyType>
+        where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
     {
         public IDataFilter DataFilter { get; set; }
 
@@ -46,18 +47,17 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         protected abstract IQueryable<TEntity> GetQueryable();
 
-        public virtual void Delete(Expression<Func<TEntity, bool>> predicate)
-        {
-            foreach (var entity in GetQueryable().Where(predicate).ToList())
-            {
-                Delete(entity);
-            }
-        }
+        public abstract Task DeleteAsync([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 
-        public virtual Task DeleteAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default)
+        public override async Task DeleteAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default)
         {
-            Delete(predicate);
-            return Task.CompletedTask;
+            var entity = await FindAsync(id, partitionKeyValue, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (entity == null)
+            {
+                return;
+            }
+
+            await DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
         }
 
         protected virtual TQueryable ApplyDataFilters<TQueryable>(TQueryable query)

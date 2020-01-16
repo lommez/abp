@@ -15,19 +15,18 @@ using Volo.Abp.Domain.Entities.Events;
 using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.EventBus.Local;
 using Volo.Abp.Guids;
-using Volo.Abp.Threading;
 
 namespace Volo.Abp.Domain.Repositories.CosmosDB
 {
-    public class CosmosDBRepository<TCosmosDBContext, TEntity> : CosmosDBRepositoryBase<TEntity>, ICosmosDBRepository<TEntity>
+    public class CosmosDBRepository<TCosmosDBContext, TEntity, TPartitionKeyType> : CosmosDBRepositoryBase<TEntity, TPartitionKeyType>, ICosmosDBRepository<TEntity, TPartitionKeyType>
         where TCosmosDBContext : IAbpCosmosDBContext
-        where TEntity : class, ICosmosDBEntity
+        where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
     {
         protected string DatabaseName { get; set; }
 
         protected string CollectionName { get; set; }
 
-        public virtual ICosmosDBCollection<TEntity> Collection => DbContext.Collection<TEntity>();
+        public virtual ICosmosDBCollection<TEntity, TPartitionKeyType> Collection => DbContext.Collection<TEntity, TPartitionKeyType>();
 
         public virtual TCosmosDBContext DbContext => DbContextProvider.GetDbContext();
 
@@ -43,8 +42,6 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         public IAuditPropertySetter AuditPropertySetter { get; set; }
 
-        public PartitionKey PartitionKey { get; set; }
-
         public CosmosDBRepository(ICosmosDBContextProvider<TCosmosDBContext> dbContextProvider)
         {
             DbContextProvider = dbContextProvider;
@@ -54,122 +51,17 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             EntityChangeEventHelper = NullEntityChangeEventHelper.Instance;
         }
 
-        public override void Delete(TEntity entity)
-        {
-            AsyncHelper.RunSync(() => ApplyAbpConceptsForDeletedEntityAsync(entity));
-
-            if (entity is ISoftDelete softDeleteEntity)
-            {
-                throw new NotImplementedException("Soft delete not implemented");
-            }
-            else
-            {
-                Collection.DeleteDocumentAsync(entity.Id, PartitionKey).GetAwaiter().GetResult();
-            }
-        }
-
-        public override void Delete(Expression<Func<TEntity, bool>> predicate)
-        {
-            var entities = GetQueryable()
-                .Where(predicate)
-                .ToList();
-
-            foreach (var entity in entities)
-            {
-                Delete(entity);
-            }
-        }
-
-        public override async Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default)
-        {
-            await ApplyAbpConceptsForDeletedEntityAsync(entity);
-
-            if (entity is ISoftDelete softDeleteEntity)
-            {
-                throw new NotImplementedException("Soft delete not implemented");
-            }
-            else
-            {
-                await Collection.DeleteDocumentAsync(entity.Id, PartitionKey, null, cancellationToken);
-            }
-        }
-
-        public override TEntity Find(string id)
-        {
-            TEntity document = null;
-            try
-            {
-                // Read the item to see if it exists.
-                document = Collection.ReadDocumentAsync(id, PartitionKey).GetAwaiter().GetResult();
-            }
-            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-            }
-            return document;
-        }
-
-        public override long GetCount()
-        {
-            return GetList().Count;
-        }
-
-        public override async Task<long> GetCountAsync(CancellationToken cancellationToken = default)
-        {
-            var result = await GetListAsync();
-            return result.Count;
-        }
-
-        public override List<TEntity> GetList()
-        {
-            return GetQueryable().ToList();
-        }
-
-        public override Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(GetList());
-        }
-
-        protected override IQueryable<TEntity> GetQueryable()
-        {
-            var query = Collection.GetQueryable();
-            return query;
-        }
-
-        public override TEntity Insert(TEntity entity)
-        {
-            AsyncHelper.RunSync(() => ApplyAbpConceptsForAddedEntityAsync(entity));
-
-            var document = Collection.CreateDocumentAsync(entity, PartitionKey).GetAwaiter().GetResult();
-            return document;
-        }
-
         public override async Task<TEntity> InsertAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
-            await ApplyAbpConceptsForAddedEntityAsync(entity);
+            await ApplyAbpConceptsForAddedEntityAsync(entity).ConfigureAwait(false);
 
-            var document = await Collection.CreateDocumentAsync(entity, PartitionKey);
-            return document;
-        }
+            await Collection.CreateDocumentAsync(
+                entity,
+                CreatePartitionKey(entity),
+                cancellationToken: GetCancellationToken(cancellationToken)
+            ).ConfigureAwait(false);
 
-        public override TEntity Update(TEntity entity)
-        {
-            SetModificationAuditProperties(entity);
-
-            if (entity is ISoftDelete softDeleteEntity && softDeleteEntity.IsDeleted)
-            {
-                throw new NotImplementedException("Soft delete not implemented");
-                //SetDeletionAuditProperties(entity);
-                //AsyncHelper.RunSync(() => TriggerEntityDeleteEventsAsync(entity));
-            }
-            else
-            {
-                AsyncHelper.RunSync(() => TriggerEntityUpdateEventsAsync(entity));
-            }
-
-            AsyncHelper.RunSync(() => TriggerDomainEventsAsync(entity));
-
-            var document = Collection.ReplaceDocumentAsync(entity, entity.Id, PartitionKey).GetAwaiter().GetResult();
-            return document;
+            return entity;
         }
 
         public override async Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -178,20 +70,136 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
             if (entity is ISoftDelete softDeleteEntity && softDeleteEntity.IsDeleted)
             {
-                throw new NotImplementedException("Soft delete not implemented");
-                //SetDeletionAuditProperties(entity);
-                //await TriggerEntityDeleteEventsAsync(entity);
+                SetDeletionAuditProperties(entity);
+                await TriggerEntityDeleteEventsAsync(entity).ConfigureAwait(false);
             }
             else
             {
-                await TriggerEntityUpdateEventsAsync(entity);
+                await TriggerEntityUpdateEventsAsync(entity).ConfigureAwait(false);
             }
 
-            await TriggerDomainEventsAsync(entity);
+            await TriggerDomainEventsAsync(entity).ConfigureAwait(false);
 
-            var document = Collection.ReplaceDocumentAsync(entity, entity.Id, PartitionKey, cancellationToken: GetCancellationToken(cancellationToken));
+            //var oldConcurrencyStamp = SetNewConcurrencyStamp(entity);
+
+            var document = await Collection.ReplaceDocumentAsync(
+                entity,
+                entity.Id,
+                CreatePartitionKey(entity),
+                cancellationToken: GetCancellationToken(cancellationToken)
+            ).ConfigureAwait(false);
+
+            //if (result.MatchedCount <= 0)
+            //{
+            //    ThrowOptimisticConcurrencyException();
+            //}
 
             return (TEntity)(dynamic)document;
+        }
+
+        public override async Task DeleteAsync(
+            TEntity entity,
+            CancellationToken cancellationToken = default)
+        {
+            await ApplyAbpConceptsForDeletedEntityAsync(entity).ConfigureAwait(false);
+            var oldConcurrencyStamp = SetNewConcurrencyStamp(entity);
+
+            if (entity is ISoftDelete softDeleteEntity)
+            {
+                softDeleteEntity.IsDeleted = true;
+                var result = await Collection.ReplaceDocumentAsync(
+                    entity,
+                    entity.Id,
+                    CreatePartitionKey(entity),
+                    cancellationToken: GetCancellationToken(cancellationToken)
+                ).ConfigureAwait(false);
+
+                //if (result.MatchedCount <= 0)
+                //{
+                //    ThrowOptimisticConcurrencyException();
+                //}
+            }
+            else
+            {
+                var result = await Collection.DeleteDocumentAsync(
+                    entity.Id,
+                    CreatePartitionKey(entity),
+                    cancellationToken: GetCancellationToken(cancellationToken)
+                ).ConfigureAwait(false);
+
+                //if (result.DeletedCount <= 0)
+                //{
+                //    ThrowOptimisticConcurrencyException();
+                //}
+            }
+        }
+
+        public override Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default)
+        {
+            var query = Collection.GetQueryable().ToList();
+            return Task.FromResult(query);
+        }
+
+        public override async Task<long> GetCountAsync(CancellationToken cancellationToken = default)
+        {
+            var result = await GetListAsync(cancellationToken).ConfigureAwait(false);
+            return result.Count;
+        }
+
+        public override async Task DeleteAsync(
+            Expression<Func<TEntity, bool>> predicate,
+            CancellationToken cancellationToken = default)
+        {
+            var entities = GetQueryable()
+                .Where(predicate)
+                .ToList();
+
+            foreach (var entity in entities)
+            {
+                await DeleteAsync(entity, cancellationToken: cancellationToken);
+            }
+        }
+
+        protected override IQueryable<TEntity> GetQueryable()
+        {
+            var query = Collection.GetQueryable();
+            return query;
+        }
+
+        public override async Task<TEntity> GetAsync(
+            string id,
+            object partitionKeyValue,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await FindAsync(id, partitionKeyValue, GetCancellationToken(cancellationToken)).ConfigureAwait(false);
+
+            if (entity == null)
+            {
+                throw new EntityNotFoundException(typeof(TEntity), id);
+            }
+
+            return entity;
+        }
+
+        public override async Task<TEntity> FindAsync(
+            string id,
+            object partitionKeyValue,
+            CancellationToken cancellationToken = default)
+        {
+            TEntity document = null;
+
+            try
+            {
+                // Read the item to see if it exists.
+                document = await Collection.ReadDocumentAsync(
+                    id,
+                    CreatePartitionKey(partitionKeyValue),
+                    cancellationToken: GetCancellationToken(cancellationToken)).ConfigureAwait(false);
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+            }
+            return document;
         }
 
         protected virtual async Task ApplyAbpConceptsForAddedEntityAsync(TEntity entity)
@@ -229,13 +237,13 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         protected virtual void CheckAndSetId(TEntity entity)
         {
-            if (entity is ICosmosDBEntity entityWithGuidId)
+            if (entity is ICosmosDBEntity<TPartitionKeyType> entityWithGuidId)
             {
                 TrySetGuidId(entityWithGuidId);
             }
         }
 
-        protected virtual void TrySetGuidId(ICosmosDBEntity entity)
+        protected virtual void TrySetGuidId(ICosmosDBEntity<TPartitionKeyType> entity)
         {
             if (entity.Id != default)
             {

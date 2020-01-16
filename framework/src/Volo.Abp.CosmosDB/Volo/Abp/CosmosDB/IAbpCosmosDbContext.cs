@@ -9,7 +9,7 @@ namespace Volo.Abp.CosmosDB
 
         CosmosClient CosmosClient { get; }
 
-        ICosmosDBCollection<TEntity> Collection<TEntity>()
-            where TEntity : class, ICosmosDBEntity;
+        ICosmosDBCollection<TEntity, TPartitionKeyType> Collection<TEntity, TPartitionKeyType>()
+            where TEntity : class, ICosmosDBEntity<TPartitionKeyType>;
     }
 }

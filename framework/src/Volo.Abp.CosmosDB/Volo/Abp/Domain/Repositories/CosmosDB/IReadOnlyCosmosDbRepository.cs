@@ -5,8 +5,8 @@ using Volo.Abp.Domain.Entities.CosmosDB;
 
 namespace Volo.Abp.Domain.Repositories.CosmosDB
 {
-    public interface IReadOnlyCosmosDBRepository<TEntity> : IQueryable<TEntity>, IReadOnlyBasicCosmosDBRepository<TEntity>
-        where TEntity : class, ICosmosDBEntity
+    public interface IReadOnlyCosmosDBRepository<TEntity, TPartitionKeyType> : IQueryable<TEntity>, IReadOnlyBasicCosmosDBRepository<TEntity, TPartitionKeyType>
+        where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
     {
         IQueryable<TEntity> WithDetails();
 

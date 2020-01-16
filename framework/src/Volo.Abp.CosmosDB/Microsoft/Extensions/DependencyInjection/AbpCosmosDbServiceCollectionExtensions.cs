@@ -20,7 +20,6 @@ namespace Microsoft.Extensions.DependencyInjection
 
             var registrar = new CosmosDBRepositoryRegistrar(options);
             registrar.AddRepositories();
-            registrar.AddCosmosDbRepositories();
 
             return services;
         }

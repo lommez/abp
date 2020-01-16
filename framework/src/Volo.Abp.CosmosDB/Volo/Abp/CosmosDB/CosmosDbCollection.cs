@@ -6,8 +6,8 @@ using Volo.Abp.Domain.Entities.CosmosDB;
 
 namespace Volo.Abp.CosmosDB
 {
-    public class CosmosDBCollection<TEntity> : ICosmosDBCollection<TEntity>
-        where TEntity : class, ICosmosDBEntity
+    public class CosmosDBCollection<TEntity, TPartitionKeyType> : ICosmosDBCollection<TEntity, TPartitionKeyType>
+        where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
     {
         private readonly Container _container;
 
