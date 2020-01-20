@@ -3,19 +3,22 @@ using Volo.Abp.Application;
 using Volo.Abp.Autofac;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.Data;
-using Volo.Abp.Domain.Repositories.CosmosDB;
+using Volo.Abp.EventBus.Distributed;
 using Volo.Abp.Modularity;
+using Volo.Abp.TestApp;
+using Volo.Abp.TestApp.Application.Dto;
 using Volo.Abp.TestApp.CosmosDB;
 using Volo.Abp.TestApp.Domain;
+using Volo.Abp.Threading;
 
 namespace Volo.Abp.CosmosDB
 {
     [DependsOn(
         typeof(AbpCosmosDBModule),
-        //typeof(AbpDddApplicationModule),
-        typeof(AbpAutofacModule)
-        //typeof(AbpTestBaseModule),
-        //typeof(AbpAutoMapperModule)
+        typeof(AbpDddApplicationModule),
+        typeof(AbpAutofacModule),
+        typeof(AbpTestBaseModule),
+        typeof(AbpAutoMapperModule)
         )]
     public class AbpCosmosDBTestModule : AbpModule
     {
@@ -28,11 +31,51 @@ namespace Volo.Abp.CosmosDB
                 options.ConnectionStrings.Default = connectionString;
             });
 
-            //context.Services.AddTransient(typeof(ICosmosDBRepository<Oferta>), typeof(CosmosDBRepository<TestAppCosmosDBContext, Oferta>));
             context.Services.AddCosmosDBContext<TestAppCosmosDBContext>(options =>
             {
                 options.AddDefaultRepositories<ITestAppCosmosDBContext>(true);
+                options.AddRepository<City, CityRepository>();
             });
+
+            ConfigureAutoMapper();
+            ConfigureDistributedEventBus();
+        }
+
+        public override void OnApplicationInitialization(ApplicationInitializationContext context)
+        {
+            SeedTestData(context);
+        }
+
+        private void ConfigureAutoMapper()
+        {
+            Configure<AbpAutoMapperOptions>(options =>
+            {
+                options.Configurators.Add(ctx =>
+                {
+                    ctx.MapperConfiguration.CreateMap<Person, PersonDto>().ReverseMap();
+                    ctx.MapperConfiguration.CreateMap<Phone, PhoneDto>().ReverseMap();
+                });
+
+                options.AddMaps<AbpCosmosDBTestModule>();
+            });
+        }
+
+        private void ConfigureDistributedEventBus()
+        {
+            Configure<AbpDistributedEventBusOptions>(options =>
+            {
+                options.EtoMappings.Add<Person, PersonEto>();
+            });
+        }
+
+        private static void SeedTestData(ApplicationInitializationContext context)
+        {
+            using (var scope = context.ServiceProvider.CreateScope())
+            {
+                AsyncHelper.RunSync(() => scope.ServiceProvider
+                    .GetRequiredService<TestDataBuilder>()
+                    .BuildAsync());
+            }
         }
     }
 }

@@ -1,4 +1,8 @@
-﻿using Volo.Abp.Testing;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Threading.Tasks;
+using Volo.Abp.Testing;
+using Volo.Abp.Uow;
 
 namespace Volo.Abp.CosmosDB
 {
@@ -8,5 +12,49 @@ namespace Volo.Abp.CosmosDB
         {
             options.UseAutofac();
         }
+
+        #region WithUnitOfWork
+
+        protected virtual Task WithUnitOfWorkAsync(Func<Task> func)
+        {
+            return WithUnitOfWorkAsync(new AbpUnitOfWorkOptions(), func);
+        }
+
+        protected virtual async Task WithUnitOfWorkAsync(AbpUnitOfWorkOptions options, Func<Task> action)
+        {
+            using (var scope = ServiceProvider.CreateScope())
+            {
+                var uowManager = scope.ServiceProvider.GetRequiredService<IUnitOfWorkManager>();
+
+                using (var uow = uowManager.Begin(options))
+                {
+                    await action().ConfigureAwait(false);
+
+                    await uow.CompleteAsync().ConfigureAwait(false);
+                }
+            }
+        }
+
+        protected virtual Task<TResult> WithUnitOfWorkAsync<TResult>(Func<Task<TResult>> func)
+        {
+            return WithUnitOfWorkAsync(new AbpUnitOfWorkOptions(), func);
+        }
+
+        protected virtual async Task<TResult> WithUnitOfWorkAsync<TResult>(AbpUnitOfWorkOptions options, Func<Task<TResult>> func)
+        {
+            using (var scope = ServiceProvider.CreateScope())
+            {
+                var uowManager = scope.ServiceProvider.GetRequiredService<IUnitOfWorkManager>();
+
+                using (var uow = uowManager.Begin(options))
+                {
+                    var result = await func().ConfigureAwait(false);
+                    await uow.CompleteAsync().ConfigureAwait(false);
+                    return result;
+                }
+            }
+        }
+
+        #endregion
     }
 }

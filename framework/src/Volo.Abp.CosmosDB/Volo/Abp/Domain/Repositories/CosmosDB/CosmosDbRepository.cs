@@ -316,7 +316,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             }
 
             var oldConcurrencyStamp = concurrencyStampEntity.ConcurrencyStamp;
-            concurrencyStampEntity.ConcurrencyStamp = Guid.NewGuid().ToString("N");
+            concurrencyStampEntity.ConcurrencyStamp = GuidGenerator.Create().ToString("N");
             return oldConcurrencyStamp;
         }
 

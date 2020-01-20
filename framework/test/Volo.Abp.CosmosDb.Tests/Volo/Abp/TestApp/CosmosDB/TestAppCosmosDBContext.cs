@@ -8,6 +8,11 @@ namespace Volo.Abp.TestApp.CosmosDB
         //[CosmosDBCollection("OfertasContainer")] //Intentionally changed the collection name to test it
         public ICosmosDBCollection<Oferta, string> Oferta => Collection<Oferta, string>();
 
+        //[CosmosDBCollection("Persons")] //Intentionally changed the collection name to test it
+        public ICosmosDBCollection<Person, string> People => Collection<Person, string>();
+
+        public ICosmosDBCollection<City, string> Cities => Collection<City, string>();
+
         protected override void CreateModel(ICosmosDBModelBuilder modelBuilder)
         {
             base.CreateModel(modelBuilder);
@@ -15,6 +20,16 @@ namespace Volo.Abp.TestApp.CosmosDB
             modelBuilder.Entity<Oferta>(b =>
             {
                 b.CollectionName = "OfertasContainer";
+            });
+
+            modelBuilder.Entity<City>(b =>
+            {
+                b.CollectionName = "City";
+            });
+
+            modelBuilder.Entity<City>(b =>
+            {
+                b.CollectionName = "Person";
             });
         }
     }

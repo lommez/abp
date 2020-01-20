@@ -9,11 +9,15 @@ namespace Volo.Abp.CosmosDB
     public class CosmosDBCollection<TEntity, TPartitionKeyType> : ICosmosDBCollection<TEntity, TPartitionKeyType>
         where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
     {
+        private readonly Database _database;
         private readonly Container _container;
+        private readonly string _collectionName;
 
         public CosmosDBCollection(Database database, string collectionName)
         {
-            _container = database.GetContainer(collectionName);
+            _database = database;
+            _container = _database.GetContainer(collectionName);
+            _collectionName = collectionName;
         }
 
         public async Task<TEntity> ReadDocumentAsync(

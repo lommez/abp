@@ -8,5 +8,9 @@ namespace Volo.Abp.TestApp.CosmosDB
     public interface ITestAppCosmosDBContext : IAbpCosmosDBContext
     {
         ICosmosDBCollection<Oferta, string> Oferta { get; }
+
+        ICosmosDBCollection<Person, string> People { get; }
+
+        ICosmosDBCollection<City, string> Cities { get; }
     }
 }
