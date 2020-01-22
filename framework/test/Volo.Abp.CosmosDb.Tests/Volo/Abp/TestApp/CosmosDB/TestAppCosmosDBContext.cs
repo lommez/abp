@@ -27,7 +27,7 @@ namespace Volo.Abp.TestApp.CosmosDB
                 b.CollectionName = "City";
             });
 
-            modelBuilder.Entity<City>(b =>
+            modelBuilder.Entity<Person>(b =>
             {
                 b.CollectionName = "Person";
             });

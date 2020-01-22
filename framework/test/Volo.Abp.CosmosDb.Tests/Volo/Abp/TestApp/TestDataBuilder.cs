@@ -1,8 +1,13 @@
+using Microsoft.Azure.Cosmos;
 using System;
+using System.Net;
 using System.Threading.Tasks;
+using Volo.Abp.CosmosDB;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories.CosmosDB;
+using Volo.Abp.TestApp.CosmosDB;
 using Volo.Abp.TestApp.Domain;
+using Volo.Abp.Uow;
 
 namespace Volo.Abp.TestApp
 {
@@ -18,21 +23,62 @@ namespace Volo.Abp.TestApp
         public static Guid IstanbulCityId { get; } = new Guid("4d734a0e-3e6b-4bad-bb43-ef8cf1b09633");
         public static Guid LondonCityId { get; } = new Guid("27237527-605e-4652-a2a5-68e0e512da36");
 
+        private readonly ICosmosDBContextProvider<ITestAppCosmosDBContext> _cosmosDBContextProvider;
+        private readonly IUnitOfWorkManager _unitOfWorkManager;
         private readonly IBasicCosmosDBRepository<Person, string> _personRepository;
         private readonly ICityRepository _cityRepository;
 
         public TestDataBuilder(
+            ICosmosDBContextProvider<ITestAppCosmosDBContext> cosmosDBContextProvider,
+            IUnitOfWorkManager unitOfWorkManager,
             IBasicCosmosDBRepository<Person, string> personRepository,
             ICityRepository cityRepository)
         {
+            _cosmosDBContextProvider = cosmosDBContextProvider;
+            _unitOfWorkManager = unitOfWorkManager;
             _personRepository = personRepository;
             _cityRepository = cityRepository;
         }
 
         public async Task BuildAsync()
         {
+            await CreateContainers().ConfigureAwait(false);
             await AddCities().ConfigureAwait(false);
             await AddPeople().ConfigureAwait(false);
+        }
+
+        private async Task CreateContainers()
+        {
+            using (var uow = _unitOfWorkManager.Begin())
+            {
+                var context = _cosmosDBContextProvider.GetDbContext();
+                var cityContainer = context.Database.GetContainer("City");
+                if (cityContainer != null)
+                {
+                    try
+                    {
+                        await cityContainer.DeleteContainerAsync();
+                    }
+                    catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+                    {                                                
+                    }
+                    
+                    await context.Database.CreateContainerIfNotExistsAsync("City", "/state");
+                }
+
+                var personContainer = context.Database.GetContainer("Person");
+                if (personContainer != null)
+                {
+                    try
+                    {
+                        await personContainer.DeleteContainerAsync();
+                    }
+                    catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+                    {                        
+                    }                    
+                    await context.Database.CreateContainerIfNotExistsAsync("Person", "/last_name");
+                }
+            }
         }
 
         private async Task AddCities()
@@ -56,7 +102,7 @@ namespace Volo.Abp.TestApp
         }
 
         private async Task AddPeople()
-        {            
+        {
             var douglas = new Person(UserDouglasId.ToString(), "Douglas", LastName, 42, cityId: LondonCityId.ToString());
             douglas.Phones.Add(new Phone(douglas.Id, "123456789"));
             douglas.Phones.Add(new Phone(douglas.Id, "123456780", PhoneType.Home));

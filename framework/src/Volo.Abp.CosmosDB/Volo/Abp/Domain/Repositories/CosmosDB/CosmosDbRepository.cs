@@ -1,4 +1,5 @@
 ﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Volo.Abp.Auditing;
 using Volo.Abp.CosmosDB;
+using Volo.Abp.CosmosDB.Extensions;
 using Volo.Abp.Data;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Entities.CosmosDB;
@@ -22,10 +24,6 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         where TCosmosDBContext : IAbpCosmosDBContext
         where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
     {
-        protected string DatabaseName { get; set; }
-
-        protected string CollectionName { get; set; }
-
         public virtual ICosmosDBCollection<TEntity, TPartitionKeyType> Collection => DbContext.Collection<TEntity, TPartitionKeyType>();
 
         public virtual TCosmosDBContext DbContext => DbContextProvider.GetDbContext();
@@ -97,6 +95,15 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             return (TEntity)(dynamic)document;
         }
 
+        public virtual async Task DeleteAsync(
+            string id,
+            bool autoSave = false,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = GetQueryable().FirstOrDefault(x => x.Id == id);
+            await DeleteAsync(entity, GetCancellationToken(cancellationToken));
+        }
+
         public override async Task DeleteAsync(
             TEntity entity,
             CancellationToken cancellationToken = default)
@@ -134,18 +141,6 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             }
         }
 
-        public override Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default)
-        {
-            var query = Collection.GetQueryable().ToList();
-            return Task.FromResult(query);
-        }
-
-        public override async Task<long> GetCountAsync(CancellationToken cancellationToken = default)
-        {
-            var result = await GetListAsync(cancellationToken).ConfigureAwait(false);
-            return result.Count;
-        }
-
         public override async Task DeleteAsync(
             Expression<Func<TEntity, bool>> predicate,
             CancellationToken cancellationToken = default)
@@ -156,14 +151,57 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
             foreach (var entity in entities)
             {
-                await DeleteAsync(entity, cancellationToken: cancellationToken);
+                await DeleteAsync(entity, cancellationToken: GetCancellationToken(cancellationToken));
             }
+        }
+
+        public override async Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default)
+        {
+            var list = new List<TEntity>();
+            var data = GetEnumerable(cancellationToken: GetCancellationToken(cancellationToken));            
+            await foreach (var item in data)
+            {
+                list.Add(item);
+            }
+            
+            return list;
+        }
+
+        public override async Task<long> GetCountAsync(CancellationToken cancellationToken = default)
+        {
+            var result = await GetListAsync(GetCancellationToken(cancellationToken)).ConfigureAwait(false);
+            return result.Count;
         }
 
         protected override IQueryable<TEntity> GetQueryable()
         {
             var query = Collection.GetQueryable();
             return query;
+        }
+
+        protected override IAsyncEnumerable<TEntity> GetEnumerable(
+            Expression<Func<TEntity, bool>> expression = null,
+            int? skip = null,
+            int? take = null,
+            Expression<Func<TEntity, object>> orderExpression = null,
+            bool orderDescending = false,
+            object partitionKeyValue = null,
+            CancellationToken cancellationToken = default)
+        {
+            // https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.cosmos.container.getitemlinqqueryable?view=azure-dotnet
+
+            var options = EnsureRequestOptions(partitionKeyValue);
+            //var query = ApplyDataFilters(Collection.GetQueryable(options));
+            var query = Collection.GetQueryable(options);
+            var iterator = query
+                .WhereIf(expression != null, expression)
+                .SkipIf(skip != null, skip)
+                .TakeIf(take != null, take)
+                .OrderByIf(orderExpression != null, orderExpression, orderDescending).ToFeedIterator();
+
+            var data = iterator.ToAsyncEnumerable(cancellationToken);
+
+            return data;
         }
 
         public override async Task<TEntity> GetAsync(
@@ -181,25 +219,26 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             return entity;
         }
 
-        public override async Task<TEntity> FindAsync(
+        public override Task<TEntity> FindAsync(
             string id,
             object partitionKeyValue,
             CancellationToken cancellationToken = default)
         {
-            TEntity document = null;
+            TEntity entity = null;
 
             try
             {
                 // Read the item to see if it exists.
-                document = await Collection.ReadDocumentAsync(
-                    id,
-                    CreatePartitionKey(partitionKeyValue),
-                    cancellationToken: GetCancellationToken(cancellationToken)).ConfigureAwait(false);
+                entity = Collection.GetQueryable(new QueryRequestOptions
+                {
+                    PartitionKey = CreatePartitionKey(partitionKeyValue)
+                }).FirstOrDefault(x => x.Id == id);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
             }
-            return document;
+
+            return Task.FromResult(entity);
         }
 
         protected virtual async Task ApplyAbpConceptsForAddedEntityAsync(TEntity entity)

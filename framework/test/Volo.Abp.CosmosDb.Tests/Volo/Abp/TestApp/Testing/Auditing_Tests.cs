@@ -89,27 +89,36 @@ namespace Volo.Abp.TestApp.Testing
         [InlineData("4b2790fc-3f51-43d5-88a1-a92d96a9e6ea")]
         public async Task Should_Set_Deletion_Properties(string currentUserId)
         {
-            if (currentUserId != null)
+            try
             {
-                CurrentUserId = Guid.Parse(currentUserId);
-            }
+                if (currentUserId != null)
+                {
+                    CurrentUserId = Guid.Parse(currentUserId);
+                }
 
-            var douglas = await PersonRepository.GetAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
+                var list = await PersonRepository.GetListAsync();
 
-            await PersonRepository.DeleteAsync(douglas).ConfigureAwait(false);
+                var douglas = await PersonRepository.GetAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
 
-            douglas = await PersonRepository.FindAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
+                await PersonRepository.DeleteAsync(douglas).ConfigureAwait(false);
 
-            douglas.ShouldBeNull();
-
-            using (DataFilter.Disable<ISoftDelete>())
-            {
                 douglas = await PersonRepository.FindAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
 
-                douglas.ShouldNotBeNull();
-                douglas.DeletionTime.ShouldNotBeNull();
-                douglas.DeletionTime.Value.ShouldBeLessThanOrEqualTo(Clock.Now);
-                douglas.DeleterId.ShouldBe(CurrentUserId);
+                douglas.ShouldBeNull();
+
+                using (DataFilter.Disable<ISoftDelete>())
+                {
+                    douglas = await PersonRepository.FindAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
+
+                    douglas.ShouldNotBeNull();
+                    douglas.DeletionTime.ShouldNotBeNull();
+                    douglas.DeletionTime.Value.ShouldBeLessThanOrEqualTo(Clock.Now);
+                    douglas.DeleterId.ShouldBe(CurrentUserId);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw;
             }
         }
     }

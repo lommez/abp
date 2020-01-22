@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Collections.Generic;
+using Volo.Abp.CosmosDB.Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Domain.Repositories.CosmosDB;
@@ -33,7 +34,7 @@ namespace Volo.Abp.CosmosDB.DependencyInjection
         {
             foreach (var entityType in GetEntityTypes(Options.OriginalDbContextType))
             {
-                var partitionKeyType = entityType.BaseType.GenericTypeArguments[0];
+                var partitionKeyType = CosmosDBEntityHelper.FindPartitionKeyType(entityType);
                 RegisterCosmosDBRepository(entityType, partitionKeyType, GetDefaultRepositoryImplementationType(entityType));
             }
         }
@@ -51,7 +52,7 @@ namespace Volo.Abp.CosmosDB.DependencyInjection
         protected override Type GetDefaultRepositoryImplementationType(Type entityType)
         {
             var primaryKeyType = EntityHelper.FindPrimaryKeyType(entityType);
-            var partitionKeyType = entityType.BaseType.GenericTypeArguments[0];
+            var partitionKeyType = CosmosDBEntityHelper.FindPartitionKeyType(entityType);
 
             if (primaryKeyType == null)
             {

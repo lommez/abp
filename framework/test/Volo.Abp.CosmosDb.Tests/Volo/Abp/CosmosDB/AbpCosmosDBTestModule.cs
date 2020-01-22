@@ -54,6 +54,7 @@ namespace Volo.Abp.CosmosDB
                 {
                     ctx.MapperConfiguration.CreateMap<Person, PersonDto>().ReverseMap();
                     ctx.MapperConfiguration.CreateMap<Phone, PhoneDto>().ReverseMap();
+                    ctx.MapperConfiguration.CreateMap<PersonEto, Person>().ReverseMap();
                 });
 
                 options.AddMaps<AbpCosmosDBTestModule>();

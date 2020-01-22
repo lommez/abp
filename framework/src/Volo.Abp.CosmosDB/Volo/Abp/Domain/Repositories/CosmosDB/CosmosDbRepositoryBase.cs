@@ -47,6 +47,15 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         protected abstract IQueryable<TEntity> GetQueryable();
 
+        protected abstract IAsyncEnumerable<TEntity> GetEnumerable(
+            Expression<Func<TEntity, bool>> expression = null,
+            int? skip = null,
+            int? take = null,
+            Expression<Func<TEntity, object>> orderExpression = null,
+            bool orderDescending = false,
+            object partitionKeyValue = null, 
+            CancellationToken cancellationToken = default);
+
         public abstract Task DeleteAsync([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 
         public override async Task DeleteAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default)

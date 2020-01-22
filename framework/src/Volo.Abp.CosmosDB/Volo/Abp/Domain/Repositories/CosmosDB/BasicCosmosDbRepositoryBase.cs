@@ -67,6 +67,17 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         public abstract Task<TEntity> FindAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default);
 
+        protected virtual QueryRequestOptions EnsureRequestOptions(object partitionKeyValue)
+        {
+            var options = new QueryRequestOptions();
+            if (partitionKeyValue != null)
+            {
+                options.PartitionKey = CreatePartitionKey(partitionKeyValue);
+            }
+
+            return options;
+        }
+
         protected virtual PartitionKey CreatePartitionKey(TEntity entity)
         {
             if (entity.PartitionKeyValue.GetType() == typeof(string))
