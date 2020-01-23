@@ -3,14 +3,14 @@ using Newtonsoft.Json.Serialization;
 using System;
 using System.Reflection;
 
-namespace Volo.Abp.CosmosDB.Volo.Abp.CosmosDB.Json
+namespace Volo.Abp.CosmosDB.Json
 {
     // https://talkdotnet.wordpress.com/2019/03/15/newtonsoft-json-deserializing-objects-that-have-private-setters/
     public class ResolverWithPrivateSetters : DefaultContractResolver
     {
         public ResolverWithPrivateSetters()
         {
-            NamingStrategy = new SnakeCaseNamingStrategy();
+            NamingStrategy = new CamelCaseNamingStrategy();
         }
 
         protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)

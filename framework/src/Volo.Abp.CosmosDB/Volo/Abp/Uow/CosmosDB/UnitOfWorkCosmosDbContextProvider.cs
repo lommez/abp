@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Volo.Abp.CosmosDB;
-using Volo.Abp.CosmosDB.Volo.Abp.CosmosDB.Json;
+using Volo.Abp.CosmosDB.Json;
 using Volo.Abp.Data;
 using Volo.Abp.Uow.CosmosDB;
 
@@ -53,7 +53,11 @@ namespace Volo.Abp.Uow.MongoDB
 
                     var clientOptions = new CosmosClientOptions
                     {
-                        Serializer = new NewtonsoftJsonCosmosSerializer(serializerSettings)
+                        //Serializer = new NewtonsoftJsonCosmosSerializer(serializerSettings),
+                        SerializerOptions = new CosmosSerializationOptions
+                        {
+                            PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+                        }
                     };
 
                     var cosmosClient = new CosmosClient(connectionString, clientOptions);

@@ -76,7 +76,7 @@ namespace Volo.Abp.TestApp
                     catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                     {                        
                     }                    
-                    await context.Database.CreateContainerIfNotExistsAsync("Person", "/last_name");
+                    await context.Database.CreateContainerIfNotExistsAsync("Person", "/lastName");
                 }
             }
         }

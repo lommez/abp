@@ -157,13 +157,16 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         public override async Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default)
         {
+            //var data = await GetEnumerableAsync(cancellationToken: GetCancellationToken(cancellationToken));
+            //return data.ToList();
+
             var list = new List<TEntity>();
-            var data = GetEnumerable(cancellationToken: GetCancellationToken(cancellationToken));            
+            var data = GetEnumerable(cancellationToken: GetCancellationToken(cancellationToken));
             await foreach (var item in data)
             {
                 list.Add(item);
             }
-            
+
             return list;
         }
 
@@ -179,6 +182,39 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             return query;
         }
 
+        protected override async Task<IEnumerable<TEntity>> GetEnumerableAsync(
+            Expression<Func<TEntity, bool>> expression = null,
+            int? skip = null,
+            int? take = null,
+            Expression<Func<TEntity, object>> orderExpression = null,
+            bool orderDescending = false,
+            object partitionKeyValue = null,
+            CancellationToken cancellationToken = default)
+        {
+            // https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.cosmos.container.getitemlinqqueryable?view=azure-dotnet
+            var result = new List<TEntity>();
+            var options = EnsureRequestOptions(partitionKeyValue);
+            var query = ApplyDataFilters(Collection.GetQueryable(options));
+
+            var iterator = query
+                .WhereIf(expression != null, expression)
+                .SkipIf(skip != null, skip)
+                .TakeIf(take != null, take)
+                .OrderByIf(orderExpression != null, orderExpression, orderDescending)
+                .ToFeedIterator();
+
+            while (iterator.HasMoreResults)
+            {
+                var response = await iterator.ReadNextAsync();
+                foreach (var entity in response.Resource)
+                {
+                    result.Add(entity);
+                }
+            }
+
+            return result;
+        }
+
         protected override IAsyncEnumerable<TEntity> GetEnumerable(
             Expression<Func<TEntity, bool>> expression = null,
             int? skip = null,
@@ -191,15 +227,16 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             // https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.cosmos.container.getitemlinqqueryable?view=azure-dotnet
 
             var options = EnsureRequestOptions(partitionKeyValue);
-            //var query = ApplyDataFilters(Collection.GetQueryable(options));
-            var query = Collection.GetQueryable(options);
+            var query = ApplyDataFilters(Collection.GetQueryable(options));
+            //var query = Collection.GetQueryable(options);
             var iterator = query
                 .WhereIf(expression != null, expression)
                 .SkipIf(skip != null, skip)
                 .TakeIf(take != null, take)
-                .OrderByIf(orderExpression != null, orderExpression, orderDescending).ToFeedIterator();
+                .OrderByIf(orderExpression != null, orderExpression, orderDescending)
+                .ToFeedIterator();
 
-            var data = iterator.ToAsyncEnumerable(cancellationToken);
+            var data = iterator.AsAsyncEnumerable(cancellationToken);
 
             return data;
         }
@@ -229,7 +266,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             try
             {
                 // Read the item to see if it exists.
-                entity = Collection.GetQueryable(new QueryRequestOptions
+                entity = GetQueryable(new QueryRequestOptions
                 {
                     PartitionKey = CreatePartitionKey(partitionKeyValue)
                 }).FirstOrDefault(x => x.Id == id);

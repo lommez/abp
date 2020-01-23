@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Text;
 
-namespace Volo.Abp.CosmosDB.Volo.Abp.CosmosDB.Json
+namespace Volo.Abp.CosmosDB.Json
 {
     // https://thomaslevesque.com/2019/10/15/handling-type-hierarchies-in-cosmos-db-part-2/
     public class NewtonsoftJsonCosmosSerializer : CosmosSerializer
