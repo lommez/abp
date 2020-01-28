@@ -1,12 +1,12 @@
-﻿//using System.Threading.Tasks;
-//using Volo.Abp.DependencyInjection;
+﻿using Microsoft.Azure.Cosmos;
 
-//namespace Volo.Abp.CosmosDB
-//{
-//    public interface ICosmosDBClientFactory : ITransientDependency
-//    {
-//        ICosmosDBClient GetClient(string collectionName);
+namespace Volo.Abp.CosmosDB
+{
+    public interface ICosmosDBClientFactory
+    {
+        CosmosClient GetClient<TCosmosDBContext>(TCosmosDBContext dbContext)
+            where TCosmosDBContext : class, IAbpCosmosDBContext;
 
-//        Task EnsureDbSetupAsync();
-//    }
-//}
+        Database GetDatabase();
+    }
+}

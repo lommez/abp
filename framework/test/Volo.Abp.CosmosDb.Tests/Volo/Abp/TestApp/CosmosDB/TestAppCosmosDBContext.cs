@@ -5,22 +5,20 @@ namespace Volo.Abp.TestApp.CosmosDB
 {
     public class TestAppCosmosDBContext : AbpCosmosDBContext, ITestAppCosmosDBContext
     {
-        //[CosmosDBCollection("OfertasContainer")] //Intentionally changed the collection name to test it
-        public ICosmosDBCollection<Oferta, string> Oferta => Collection<Oferta, string>();
-
         //[CosmosDBCollection("Persons")] //Intentionally changed the collection name to test it
         public ICosmosDBCollection<Person, string> People => Collection<Person, string>();
 
         public ICosmosDBCollection<City, string> Cities => Collection<City, string>();
 
+        public TestAppCosmosDBContext(ICosmosDBClientFactory cosmosDBClientFactory)
+            : base(cosmosDBClientFactory)
+        {
+
+        }
+
         protected override void CreateModel(ICosmosDBModelBuilder modelBuilder)
         {
             base.CreateModel(modelBuilder);
-
-            modelBuilder.Entity<Oferta>(b =>
-            {
-                b.CollectionName = "OfertasContainer";
-            });
 
             modelBuilder.Entity<City>(b =>
             {

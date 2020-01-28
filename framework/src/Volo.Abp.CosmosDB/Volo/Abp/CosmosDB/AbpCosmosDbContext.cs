@@ -13,6 +13,12 @@ namespace Volo.Abp.CosmosDB
 
         public CosmosClient CosmosClient { get; private set; }
 
+        public AbpCosmosDBContext(ICosmosDBClientFactory cosmosDBClientFactory)
+        {
+            CosmosClient = cosmosDBClientFactory.GetClient(this);
+            Database = cosmosDBClientFactory.GetDatabase();
+        }
+
         protected internal virtual void CreateModel(ICosmosDBModelBuilder modelBuilder)
         {
         }

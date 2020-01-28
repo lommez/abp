@@ -47,16 +47,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         protected abstract IQueryable<TEntity> GetQueryable();
 
-        protected abstract Task<IEnumerable<TEntity>> GetEnumerableAsync(
-            Expression<Func<TEntity, bool>> expression = null,
-            int? skip = null,
-            int? take = null,
-            Expression<Func<TEntity, object>> orderExpression = null,
-            bool orderDescending = false,
-            object partitionKeyValue = null, 
-            CancellationToken cancellationToken = default);
-
-        protected abstract IAsyncEnumerable<TEntity> GetEnumerable(
+        protected abstract IAsyncEnumerable<TEntity> GetAsyncEnumerable(
             Expression<Func<TEntity, bool>> expression = null,
             int? skip = null,
             int? take = null,

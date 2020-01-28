@@ -11,13 +11,11 @@ namespace Volo.Abp.CosmosDB
     {
         private readonly Database _database;
         private readonly Container _container;
-        private readonly string _collectionName;
 
         public CosmosDBCollection(Database database, string collectionName)
         {
             _database = database;
             _container = _database.GetContainer(collectionName);
-            _collectionName = collectionName;
         }
 
         public async Task<TEntity> ReadDocumentAsync(

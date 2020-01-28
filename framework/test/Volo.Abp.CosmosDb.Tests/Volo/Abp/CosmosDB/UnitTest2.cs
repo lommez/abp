@@ -1,25 +1,22 @@
-using Microsoft.Azure.Cosmos;
+﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Volo.Abp;
-using Volo.Abp.CosmosDB;
-using Volo.Abp.Data;
-using Volo.Abp.Domain.Repositories.CosmosDB;
-using Volo.Abp.MultiTenancy;
-using Volo.Abp.TestApp.CosmosDB;
-using Volo.Abp.TestApp.Domain;
-using Xunit;
 using Volo.Abp.CosmosDB.Extensions;
+using Volo.Abp.Data;
+using Volo.Abp.MultiTenancy;
+using Volo.Abp.TestApp.Application;
+using Volo.Abp.TestApp.Domain;
 using Volo.Abp.Threading;
-using System.Collections.Generic;
+using Xunit;
 
-namespace Volo.Abo.CosmosDB.Tests
+namespace Volo.Abp.CosmosDB
 {
-    public class UnitTest1 : CosmosDBTestBase
+    public class UnitTest2 : CosmosDBTestBase
     {
         protected virtual CancellationToken GetCancellationToken(ICancellationTokenProvider cancellationTokenProvider, CancellationToken prefferedValue = default)
         {
@@ -27,31 +24,10 @@ namespace Volo.Abo.CosmosDB.Tests
         }
 
         [Fact]
-        public void ResolveRepository()
+        public async Task Test2()
         {
-            var repo = GetRequiredService<ICosmosDBRepository<Person, string>>();
-        }
-
-        [Fact]
-        public async Task Test1()
-        {
-            //try
-            //{
-            //    var ofertaRepository = GetRequiredService<ICosmosDBRepository<Oferta, string>>();
-            //    var ddd = await ofertaRepository.FindAsync("e58c20c9-dc78-4f2a-a6a2-b510a0831ea9", "lommez");
-            //}
-            //catch (System.Exception e)
-            //{
-            //    throw;
-            //}
-
             var connectionStringResolver = GetRequiredService<IConnectionStringResolver>();
             var defaultConnectionString = connectionStringResolver.Resolve("Default");
-            //var serializerSettings = new JsonSerializerSettings()
-            //{
-            //    ContractResolver = new ResolverWithPrivateSetters(),
-            //    ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
-            //};
             var clientOptions = new CosmosClientOptions
             {
                 //Serializer = new NewtonsoftJsonCosmosSerializer(serializerSettings),
@@ -61,14 +37,13 @@ namespace Volo.Abo.CosmosDB.Tests
                 }
             };
             var cosmosClient = new CosmosClient(defaultConnectionString, clientOptions);
-            await cosmosClient.CreateDatabaseIfNotExistsAsync("DemoDb");
-            var database = cosmosClient.GetDatabase("DemoDb");            
+            await cosmosClient.CreateDatabaseIfNotExistsAsync("Ofertas");
+            var database = cosmosClient.GetDatabase("Ofertas");
+            var ofertasContainer = database.GetContainer("OfertasContainer");
             var personContainer = database.GetContainer("Person");
             var dataFilter = GetRequiredService<IDataFilter>();
             var currentTenant = GetRequiredService<ICurrentTenant>();
-            var cancellationTokenProvider = GetRequiredService<ICancellationTokenProvider>();
-
-            Stopwatch sw = new Stopwatch();                        
+            var cancellationTokenProvider = GetRequiredService<ICancellationTokenProvider>();            
 
             Func<IQueryable<Person>, IQueryable<Person>> ApplyDataFilters = (query) =>
             {
@@ -87,7 +62,10 @@ namespace Volo.Abo.CosmosDB.Tests
             };
 
             var query = ApplyDataFilters(personContainer.GetItemLinqQueryable<Person>());
+
+            Stopwatch sw = new Stopwatch();
             sw.Start();
+
             var iterator = query.ToFeedIterator();
             var data = iterator.AsAsyncEnumerable(GetCancellationToken(cancellationTokenProvider));
             var list = new List<Person>();
@@ -95,27 +73,29 @@ namespace Volo.Abo.CosmosDB.Tests
             {
                 list.Add(item);
             }
+
             sw.Stop();
+
             var ofertasCollection = new CosmosDBCollection<Oferta, string>(database, "OfertasContainer");
             var teste = await ofertasCollection.ReadDocumentAsync(
                 "e58c20c9-dc78-4f2a-a6a2-b510a0831ea9",
                  new PartitionKey("lommez"));
-
-            //var unitOfWorkManager = GetRequiredService<IUnitOfWorkManager>();
-            //var unitOfWork = GetRequiredService<ICosmosDBContextProvider<TestAppCosmosDBContext>>();
-
-            //using (var uow = unitOfWorkManager.Begin())
-            //{
-            //    var context = unitOfWork.GetDbContext();
-            //    await uow.CompleteAsync();
-            //}
-            //var aaa = new TestAppCosmosDBContext();
-            //var builder = new CosmosDBModelBuilder();
-            //aaa.ModelSource = new CosmosDBModelSource();
-            //var bbb = aaa.GetEntityModel<Oferta>();
-            //var xxxx = await aaa.Oferta.ReadDocumentAsync(
-            //    "e58c20c9-dc78-4f2a-a6a2-b510a0831ea9",
-            //     new PartitionKey("lommez"));
         }
+
+        //[Fact]
+        //public async Task Test3()
+        //{
+        //    var personAppService = GetRequiredService<IPersonAppService>();
+
+        //    Stopwatch sw1 = new Stopwatch();
+        //    sw1.Start();
+        //    var people1 = await personAppService.GetListAsyncWithoutUOW();
+        //    sw1.Stop();
+
+        //    Stopwatch sw2 = new Stopwatch();
+        //    sw2.Start();
+        //    var people2 = await personAppService.GetListAsync();
+        //    sw2.Stop();
+        //}
     }
 }

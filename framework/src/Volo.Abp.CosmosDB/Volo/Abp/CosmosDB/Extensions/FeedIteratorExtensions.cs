@@ -7,19 +7,6 @@ namespace Volo.Abp.CosmosDB.Extensions
 {
     public static class FeedIteratorExtensions
     {
-        public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
-            this FeedIterator<T> iterator,
-            [EnumeratorCancellation]CancellationToken cancellationToken = default)
-        {
-            while (iterator.HasMoreResults)
-            {
-                foreach (var item in await iterator.ReadNextAsync(cancellationToken))
-                {
-                    yield return item;
-                }
-            }
-        }
-
         public static async IAsyncEnumerable<T> AsAsyncEnumerable<T>(
             this FeedIterator<T> iterator,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)

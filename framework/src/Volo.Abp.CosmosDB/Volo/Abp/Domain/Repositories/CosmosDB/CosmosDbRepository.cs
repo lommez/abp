@@ -24,11 +24,9 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         where TCosmosDBContext : IAbpCosmosDBContext
         where TEntity : class, ICosmosDBEntity<TPartitionKeyType>
     {
+        public readonly TCosmosDBContext DbContext;
+
         public virtual ICosmosDBCollection<TEntity, TPartitionKeyType> Collection => DbContext.Collection<TEntity, TPartitionKeyType>();
-
-        public virtual TCosmosDBContext DbContext => DbContextProvider.GetDbContext();
-
-        protected ICosmosDBContextProvider<TCosmosDBContext> DbContextProvider { get; }
 
         public ILocalEventBus LocalEventBus { get; set; }
 
@@ -40,13 +38,12 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         public IAuditPropertySetter AuditPropertySetter { get; set; }
 
-        public CosmosDBRepository(ICosmosDBContextProvider<TCosmosDBContext> dbContextProvider)
+        public CosmosDBRepository(TCosmosDBContext dbContext)
         {
-            DbContextProvider = dbContextProvider;
-
             LocalEventBus = NullLocalEventBus.Instance;
             DistributedEventBus = NullDistributedEventBus.Instance;
             EntityChangeEventHelper = NullEntityChangeEventHelper.Instance;
+            DbContext = dbContext;
         }
 
         public override async Task<TEntity> InsertAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -157,16 +154,12 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         public override async Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default)
         {
-            //var data = await GetEnumerableAsync(cancellationToken: GetCancellationToken(cancellationToken));
-            //return data.ToList();
-
             var list = new List<TEntity>();
-            var data = GetEnumerable(cancellationToken: GetCancellationToken(cancellationToken));
+            var data = GetAsyncEnumerable(cancellationToken: GetCancellationToken(cancellationToken));
             await foreach (var item in data)
             {
                 list.Add(item);
             }
-
             return list;
         }
 
@@ -182,40 +175,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             return query;
         }
 
-        protected override async Task<IEnumerable<TEntity>> GetEnumerableAsync(
-            Expression<Func<TEntity, bool>> expression = null,
-            int? skip = null,
-            int? take = null,
-            Expression<Func<TEntity, object>> orderExpression = null,
-            bool orderDescending = false,
-            object partitionKeyValue = null,
-            CancellationToken cancellationToken = default)
-        {
-            // https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.cosmos.container.getitemlinqqueryable?view=azure-dotnet
-            var result = new List<TEntity>();
-            var options = EnsureRequestOptions(partitionKeyValue);
-            var query = ApplyDataFilters(Collection.GetQueryable(options));
-
-            var iterator = query
-                .WhereIf(expression != null, expression)
-                .SkipIf(skip != null, skip)
-                .TakeIf(take != null, take)
-                .OrderByIf(orderExpression != null, orderExpression, orderDescending)
-                .ToFeedIterator();
-
-            while (iterator.HasMoreResults)
-            {
-                var response = await iterator.ReadNextAsync();
-                foreach (var entity in response.Resource)
-                {
-                    result.Add(entity);
-                }
-            }
-
-            return result;
-        }
-
-        protected override IAsyncEnumerable<TEntity> GetEnumerable(
+        protected override IAsyncEnumerable<TEntity> GetAsyncEnumerable(
             Expression<Func<TEntity, bool>> expression = null,
             int? skip = null,
             int? take = null,
@@ -228,7 +188,6 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
             var options = EnsureRequestOptions(partitionKeyValue);
             var query = ApplyDataFilters(Collection.GetQueryable(options));
-            //var query = Collection.GetQueryable(options);
             var iterator = query
                 .WhereIf(expression != null, expression)
                 .SkipIf(skip != null, skip)
@@ -236,9 +195,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
                 .OrderByIf(orderExpression != null, orderExpression, orderDescending)
                 .ToFeedIterator();
 
-            var data = iterator.AsAsyncEnumerable(cancellationToken);
-
-            return data;
+            return iterator.AsAsyncEnumerable(cancellationToken);
         }
 
         public override async Task<TEntity> GetAsync(
@@ -256,26 +213,34 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             return entity;
         }
 
-        public override Task<TEntity> FindAsync(
+        public override async Task<TEntity> FindAsync(
             string id,
             object partitionKeyValue,
             CancellationToken cancellationToken = default)
         {
             TEntity entity = null;
+            var options = EnsureRequestOptions(partitionKeyValue);
+            var query = ApplyDataFilters(Collection.GetQueryable(options)).Where(x => x.Id.Equals(id));
+
+            var iterator = query.ToFeedIterator();
 
             try
             {
-                // Read the item to see if it exists.
-                entity = GetQueryable(new QueryRequestOptions
+                while (iterator.HasMoreResults)
                 {
-                    PartitionKey = CreatePartitionKey(partitionKeyValue)
-                }).FirstOrDefault(x => x.Id == id);
+                    var response = await iterator.ReadNextAsync();
+
+                    foreach (var result in response.Resource)
+                    {
+                        entity = result;
+                    }
+                }
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
             }
 
-            return Task.FromResult(entity);
+            return entity;
         }
 
         protected virtual async Task ApplyAbpConceptsForAddedEntityAsync(TEntity entity)

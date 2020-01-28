@@ -1,19 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Volo.Abp.CosmosDB;
 using Volo.Abp.Domain.Repositories.CosmosDB;
 using Volo.Abp.TestApp.Domain;
-using System.Linq;
 
 namespace Volo.Abp.TestApp.CosmosDB
 {
     public class CityRepository : CosmosDBRepository<ITestAppCosmosDBContext, City, string>, ICityRepository
     {
-        public CityRepository(ICosmosDBContextProvider<ITestAppCosmosDBContext> dbContextProvider) 
-            : base(dbContextProvider)
+        public CityRepository(ITestAppCosmosDBContext dbContext)
+            : base(dbContext)
         {
-        }        
+        }
 
         public Task<City> FindByNameAsync(string name)
         {

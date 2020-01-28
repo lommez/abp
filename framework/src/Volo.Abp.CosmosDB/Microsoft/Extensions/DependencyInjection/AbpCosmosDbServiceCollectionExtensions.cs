@@ -1,7 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection.Extensions;
+﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using Volo.Abp.CosmosDB;
 using Volo.Abp.CosmosDB.DependencyInjection;
+using Volo.Abp.Data;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -20,6 +22,22 @@ namespace Microsoft.Extensions.DependencyInjection
 
             var registrar = new CosmosDBRepositoryRegistrar(options);
             registrar.AddRepositories();
+
+            return services;
+        }
+
+        public static IServiceCollection AddCosmosDBClientFactory(this IServiceCollection services, Action<CosmosClientOptions> optionsBuilder = null)
+        {
+            var options = new CosmosClientOptions();
+            optionsBuilder?.Invoke(options);
+
+            var descriptor = ServiceDescriptor.Singleton<ICosmosDBClientFactory>(serviceProvider =>
+            {
+                var connectionStringResolver = serviceProvider.GetRequiredService<IConnectionStringResolver>();
+                return new CosmosDBClientFactory(connectionStringResolver, options);
+            });
+
+            services.Add(descriptor);
 
             return services;
         }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.Application;
 using Volo.Abp.Autofac;
 using Volo.Abp.AutoMapper;
@@ -35,6 +36,14 @@ namespace Volo.Abp.CosmosDB
             {
                 options.AddDefaultRepositories<ITestAppCosmosDBContext>(true);
                 options.AddRepository<City, CityRepository>();
+            });
+
+            context.Services.AddCosmosDBClientFactory(options =>
+            {
+                options.SerializerOptions = new CosmosSerializationOptions
+                {
+                    PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+                };
             });
 
             ConfigureAutoMapper();

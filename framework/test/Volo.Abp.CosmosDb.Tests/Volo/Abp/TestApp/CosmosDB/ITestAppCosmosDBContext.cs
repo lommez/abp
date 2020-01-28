@@ -4,11 +4,9 @@ using Volo.Abp.TestApp.Domain;
 
 namespace Volo.Abp.TestApp.CosmosDB
 {
-    [ConnectionStringName("Ofertas")]
+    [ConnectionStringName("DemoDb")]
     public interface ITestAppCosmosDBContext : IAbpCosmosDBContext
     {
-        ICosmosDBCollection<Oferta, string> Oferta { get; }
-
         ICosmosDBCollection<Person, string> People { get; }
 
         ICosmosDBCollection<City, string> Cities { get; }

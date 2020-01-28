@@ -4,9 +4,8 @@ using Newtonsoft.Json;
 using Volo.Abp.CosmosDB;
 using Volo.Abp.CosmosDB.Json;
 using Volo.Abp.Data;
-using Volo.Abp.Uow.CosmosDB;
 
-namespace Volo.Abp.Uow.MongoDB
+namespace Volo.Abp.Uow.CosmosDB
 {
     public class UnitOfWorkCosmosDBContextProvider<TCosmosDBContext> : ICosmosDBContextProvider<TCosmosDBContext>
         where TCosmosDBContext : IAbpCosmosDBContext

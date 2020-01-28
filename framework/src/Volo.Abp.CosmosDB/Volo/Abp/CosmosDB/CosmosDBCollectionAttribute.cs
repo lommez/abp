@@ -8,7 +8,6 @@ namespace Volo.Abp.CosmosDB
 
         public CosmosDBCollectionAttribute()
         {
-
         }
 
         public CosmosDBCollectionAttribute(string collectionName)

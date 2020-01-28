@@ -2,6 +2,7 @@
 using NSubstitute;
 using Shouldly;
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Volo.Abp.CosmosDB;
 using Volo.Abp.Data;
@@ -89,36 +90,36 @@ namespace Volo.Abp.TestApp.Testing
         [InlineData("4b2790fc-3f51-43d5-88a1-a92d96a9e6ea")]
         public async Task Should_Set_Deletion_Properties(string currentUserId)
         {
-            try
+            if (currentUserId != null)
             {
-                if (currentUserId != null)
-                {
-                    CurrentUserId = Guid.Parse(currentUserId);
-                }
+                CurrentUserId = Guid.Parse(currentUserId);
+            }
 
-                var list = await PersonRepository.GetListAsync();
+            Stopwatch sw1 = new Stopwatch();
+            Stopwatch sw2 = new Stopwatch();
 
-                var douglas = await PersonRepository.GetAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
+            sw1.Start();
+            var list = await PersonRepository.GetListAsync();
+            sw1.Stop();
 
-                await PersonRepository.DeleteAsync(douglas).ConfigureAwait(false);
+            sw2.Start();
+            var douglas = await PersonRepository.GetAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
+            sw2.Stop();
 
+            await PersonRepository.DeleteAsync(douglas).ConfigureAwait(false);
+
+            douglas = await PersonRepository.FindAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
+
+            douglas.ShouldBeNull();
+
+            using (DataFilter.Disable<ISoftDelete>())
+            {
                 douglas = await PersonRepository.FindAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
 
-                douglas.ShouldBeNull();
-
-                using (DataFilter.Disable<ISoftDelete>())
-                {
-                    douglas = await PersonRepository.FindAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
-
-                    douglas.ShouldNotBeNull();
-                    douglas.DeletionTime.ShouldNotBeNull();
-                    douglas.DeletionTime.Value.ShouldBeLessThanOrEqualTo(Clock.Now);
-                    douglas.DeleterId.ShouldBe(CurrentUserId);
-                }
-            }
-            catch (Exception ex)
-            {
-                throw;
+                douglas.ShouldNotBeNull();
+                douglas.DeletionTime.ShouldNotBeNull();
+                douglas.DeletionTime.Value.ShouldBeLessThanOrEqualTo(Clock.Now);
+                douglas.DeleterId.ShouldBe(CurrentUserId);
             }
         }
     }
