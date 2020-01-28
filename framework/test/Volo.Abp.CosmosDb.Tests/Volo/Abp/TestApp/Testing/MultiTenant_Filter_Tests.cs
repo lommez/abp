@@ -4,7 +4,6 @@ using Shouldly;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Volo.Abp.CosmosDB;
 using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories.CosmosDB;
@@ -35,7 +34,7 @@ namespace Volo.Abp.TestApp.Testing
         }
 
         [Fact]
-        public Task Should_Get_Person_For_Current_Tenant()
+        public void Should_Get_Person_For_Current_Tenant()
         {
             //TenantId = null
 
@@ -60,12 +59,10 @@ namespace Volo.Abp.TestApp.Testing
 
             people = _personRepository.ToList();
             people.Count.ShouldBe(0);
-
-            return Task.CompletedTask;
         }
 
         [Fact]
-        public Task Should_Get_All_People_When_MultiTenant_Filter_Is_Disabled()
+        public void Should_Get_All_People_When_MultiTenant_Filter_Is_Disabled()
         {
             List<Person> people;
 
@@ -79,8 +76,6 @@ namespace Volo.Abp.TestApp.Testing
             //Filter re-enabled automatically
             people = _personRepository.ToList();
             people.Count.ShouldBe(1);
-
-            return Task.CompletedTask;
         }
     }
 }

@@ -42,7 +42,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         public IEnumerator<TEntity> GetEnumerator()
         {
-            return GetQueryable().GetEnumerator();
+            return GetEnumerable().GetEnumerator();
         }
 
         protected abstract IQueryable<TEntity> GetQueryable();
@@ -55,6 +55,14 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             bool orderDescending = false,
             object partitionKeyValue = null,
             CancellationToken cancellationToken = default);
+
+        protected abstract IEnumerable<TEntity> GetEnumerable(
+            Expression<Func<TEntity, bool>> expression = null,
+            int? skip = null,
+            int? take = null,
+            Expression<Func<TEntity, object>> orderExpression = null,
+            bool orderDescending = false,
+            object partitionKeyValue = null);
 
         public abstract Task DeleteAsync([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 

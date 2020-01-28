@@ -2,7 +2,6 @@
 using NSubstitute;
 using Shouldly;
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Volo.Abp.CosmosDB;
 using Volo.Abp.Data;
@@ -95,16 +94,8 @@ namespace Volo.Abp.TestApp.Testing
                 CurrentUserId = Guid.Parse(currentUserId);
             }
 
-            Stopwatch sw1 = new Stopwatch();
-            Stopwatch sw2 = new Stopwatch();
-
-            sw1.Start();
             var list = await PersonRepository.GetListAsync();
-            sw1.Stop();
-
-            sw2.Start();
             var douglas = await PersonRepository.GetAsync(TestDataBuilder.UserDouglasId.ToString(), TestDataBuilder.LastName).ConfigureAwait(false);
-            sw2.Stop();
 
             await PersonRepository.DeleteAsync(douglas).ConfigureAwait(false);
 

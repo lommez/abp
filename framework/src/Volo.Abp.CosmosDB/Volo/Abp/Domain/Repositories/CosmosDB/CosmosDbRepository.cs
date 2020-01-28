@@ -175,6 +175,33 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             return query;
         }
 
+        protected override IEnumerable<TEntity> GetEnumerable(
+            Expression<Func<TEntity, bool>> expression = null,
+            int? skip = null,
+            int? take = null,
+            Expression<Func<TEntity, object>> orderExpression = null,
+            bool orderDescending = false,
+            object partitionKeyValue = null)
+        {
+            var options = EnsureRequestOptions(partitionKeyValue);
+            var query = ApplyDataFilters(Collection.GetQueryable(options));
+            var iterator = query
+                .WhereIf(expression != null, expression)
+                .SkipIf(skip != null, skip)
+                .TakeIf(take != null, take)
+                .OrderByIf(orderExpression != null, orderExpression, orderDescending)
+                .ToFeedIterator();
+
+            var list = new List<TEntity>();
+
+            foreach (var item in iterator.ReadNextAsync().ConfigureAwait(false).GetAwaiter().GetResult())
+            {
+                list.Add(item);
+            }
+
+            return list;
+        }
+
         protected override IAsyncEnumerable<TEntity> GetAsyncEnumerable(
             Expression<Func<TEntity, bool>> expression = null,
             int? skip = null,
