@@ -1,5 +1,7 @@
 ﻿using JetBrains.Annotations;
+using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Volo.Abp.Domain.Entities.CosmosDB;
@@ -40,5 +42,9 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
         /// <returns>Entity or null</returns>
         Task<TEntity> FindAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default);
+
+        Task<TEntity> FirstOrDefaultAsync(Expression<Func<TEntity, bool>> expression = null, object partitionKeyValue = null, CancellationToken cancellationToken = default); 
+
+        Task<IEnumerable<TEntity>> ToListAsync(object partitionKeyValue = null, CancellationToken cancellationToken = default);
     }
 }

@@ -1,6 +1,5 @@
 ﻿using JetBrains.Annotations;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -19,34 +18,6 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         public ICurrentTenant CurrentTenant { get; set; }
 
-        public virtual Type ElementType => GetQueryable().ElementType;
-
-        public virtual Expression Expression => GetQueryable().Expression;
-
-        public virtual IQueryProvider Provider => GetQueryable().Provider;
-
-        public virtual IQueryable<TEntity> WithDetails()
-        {
-            return GetQueryable();
-        }
-
-        public virtual IQueryable<TEntity> WithDetails(params Expression<Func<TEntity, object>>[] propertySelectors)
-        {
-            return GetQueryable();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public IEnumerator<TEntity> GetEnumerator()
-        {
-            return GetEnumerable().GetEnumerator();
-        }
-
-        protected abstract IQueryable<TEntity> GetQueryable();
-
         protected abstract IAsyncEnumerable<TEntity> GetAsyncEnumerable(
             Expression<Func<TEntity, bool>> expression = null,
             int? skip = null,
@@ -55,14 +26,6 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             bool orderDescending = false,
             object partitionKeyValue = null,
             CancellationToken cancellationToken = default);
-
-        protected abstract IEnumerable<TEntity> GetEnumerable(
-            Expression<Func<TEntity, bool>> expression = null,
-            int? skip = null,
-            int? take = null,
-            Expression<Func<TEntity, object>> orderExpression = null,
-            bool orderDescending = false,
-            object partitionKeyValue = null);
 
         public abstract Task DeleteAsync([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 

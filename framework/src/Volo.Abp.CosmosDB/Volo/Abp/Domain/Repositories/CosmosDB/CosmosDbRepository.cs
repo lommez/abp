@@ -97,7 +97,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             bool autoSave = false,
             CancellationToken cancellationToken = default)
         {
-            var entity = GetQueryable().FirstOrDefault(x => x.Id == id);
+            var entity = await FirstOrDefaultAsync(x => x.Id == id, cancellationToken: GetCancellationToken(cancellationToken));
             await DeleteAsync(entity, GetCancellationToken(cancellationToken));
         }
 
@@ -142,11 +142,9 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             Expression<Func<TEntity, bool>> predicate,
             CancellationToken cancellationToken = default)
         {
-            var entities = GetQueryable()
-                .Where(predicate)
-                .ToList();
+            var entities = GetAsyncEnumerable(expression: predicate, cancellationToken: GetCancellationToken(cancellationToken));
 
-            foreach (var entity in entities)
+            await foreach (var entity in entities)
             {
                 await DeleteAsync(entity, cancellationToken: GetCancellationToken(cancellationToken));
             }
@@ -169,37 +167,31 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             return result.Count;
         }
 
-        protected override IQueryable<TEntity> GetQueryable()
+        public override async Task<IEnumerable<TEntity>> ToListAsync(object partitionKeyValue = null, CancellationToken cancellationToken = default)
         {
-            var query = Collection.GetQueryable();
-            return query;
+            var list = new List<TEntity>();
+            var data = GetAsyncEnumerable(cancellationToken: GetCancellationToken(cancellationToken));
+            await foreach (var item in data)
+            {
+                list.Add(item);
+            }
+            return list;
         }
 
-        protected override IEnumerable<TEntity> GetEnumerable(
+        public override async Task<TEntity> FirstOrDefaultAsync(
             Expression<Func<TEntity, bool>> expression = null,
-            int? skip = null,
-            int? take = null,
-            Expression<Func<TEntity, object>> orderExpression = null,
-            bool orderDescending = false,
-            object partitionKeyValue = null)
+            object partitionKeyValue = null,
+            CancellationToken cancellationToken = default)
         {
-            var options = EnsureRequestOptions(partitionKeyValue);
-            var query = ApplyDataFilters(Collection.GetQueryable(options));
-            var iterator = query
-                .WhereIf(expression != null, expression)
-                .SkipIf(skip != null, skip)
-                .TakeIf(take != null, take)
-                .OrderByIf(orderExpression != null, orderExpression, orderDescending)
-                .ToFeedIterator();
-
             var list = new List<TEntity>();
+            var data = GetAsyncEnumerable(expression: expression, cancellationToken: GetCancellationToken(cancellationToken));
 
-            foreach (var item in iterator.ReadNextAsync().ConfigureAwait(false).GetAwaiter().GetResult())
+            await foreach (var item in data)
             {
                 list.Add(item);
             }
 
-            return list;
+            return list.FirstOrDefault();
         }
 
         protected override IAsyncEnumerable<TEntity> GetAsyncEnumerable(
@@ -222,7 +214,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
                 .OrderByIf(orderExpression != null, orderExpression, orderDescending)
                 .ToFeedIterator();
 
-            return iterator.AsAsyncEnumerable(cancellationToken);
+            return iterator.AsAsyncEnumerable(GetCancellationToken(cancellationToken));
         }
 
         public override async Task<TEntity> GetAsync(

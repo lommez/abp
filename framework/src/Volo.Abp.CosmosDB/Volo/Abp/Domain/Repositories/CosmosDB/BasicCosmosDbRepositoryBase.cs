@@ -1,6 +1,7 @@
 ﻿using Microsoft.Azure.Cosmos;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Volo.Abp.DependencyInjection;
@@ -66,6 +67,10 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         }
 
         public abstract Task<TEntity> FindAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default);
+
+        public abstract Task<IEnumerable<TEntity>> ToListAsync(object partitionKeyValue = null, CancellationToken cancellationToken = default);
+
+        public abstract Task<TEntity> FirstOrDefaultAsync(Expression<Func<TEntity, bool>> expression = null, object partitionKeyValue = null, CancellationToken cancellationToken = default);
 
         protected virtual QueryRequestOptions EnsureRequestOptions(object partitionKeyValue)
         {
