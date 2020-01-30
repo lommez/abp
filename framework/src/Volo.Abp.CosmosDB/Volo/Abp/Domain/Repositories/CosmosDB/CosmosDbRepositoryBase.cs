@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Volo.Abp.Data;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Entities.CosmosDB;
 using Volo.Abp.MultiTenancy;
 
@@ -29,17 +30,6 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         public abstract Task DeleteAsync([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 
-        public override async Task DeleteAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default)
-        {
-            var entity = await FindAsync(id, partitionKeyValue, cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (entity == null)
-            {
-                return;
-            }
-
-            await DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
-        }
-
         protected virtual TQueryable ApplyDataFilters<TQueryable>(TQueryable query)
             where TQueryable : IQueryable<TEntity>
         {
@@ -53,6 +43,19 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
                 var tenantId = CurrentTenant.Id;
                 query = (TQueryable)query.WhereIf(DataFilter.IsEnabled<IMultiTenant>(), e => ((IMultiTenant)e).TenantId == tenantId);
             }
+
+            return query;
+        }
+
+        protected virtual TQueryable ApplyConcurrencyStamp<TQueryable>(TQueryable query, TEntity entity, bool withConcurrencyStamp = false, string concurrencyStamp = null)
+            where TQueryable : IQueryable<TEntity>
+        {
+            if (!withConcurrencyStamp || !(entity is IHasConcurrencyStamp entityWithConcurrencyStamp))
+            {
+                return query;
+            }
+
+            query = (TQueryable)query.Where(x => ((IHasConcurrencyStamp)x).ConcurrencyStamp == concurrencyStamp);
 
             return query;
         }

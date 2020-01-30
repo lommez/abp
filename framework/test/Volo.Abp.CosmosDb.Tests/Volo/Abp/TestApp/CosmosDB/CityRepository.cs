@@ -8,9 +8,12 @@ namespace Volo.Abp.TestApp.CosmosDB
 {
     public class CityRepository : CosmosDBRepository<ITestAppCosmosDBContext, City, string>, ICityRepository
     {
-        public CityRepository(ITestAppCosmosDBContext dbContext)
+        private readonly ICosmosDBRepository<Person, string> _personRepository;
+
+        public CityRepository(ITestAppCosmosDBContext dbContext, ICosmosDBRepository<Person, string> personRepository)
             : base(dbContext)
         {
+            _personRepository = personRepository;
         }
 
         public Task<City> FindByNameAsync(string name)
@@ -21,7 +24,7 @@ namespace Volo.Abp.TestApp.CosmosDB
         public async Task<List<Person>> GetPeopleInTheCityAsync(string cityName)
         {
             var city = await FindByNameAsync(cityName).ConfigureAwait(false);
-            var people = DbContext.People.GetQueryable().Where(p => p.CityId == city.Id).ToList();
+            var people = await _personRepository.GetListAsync(p => p.CityId == city.Id).ConfigureAwait(false);
             return people;
         }
     }

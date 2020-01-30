@@ -39,16 +39,16 @@ namespace Volo.Abp.CosmosDB.DataFiltering
 
             _fakeCurrentTenant.Id.Returns((Guid?)null);
 
-            var people = await _personRepository.ToListAsync();
-            people.Count().ShouldBe(1);
+            var people = await _personRepository.GetListAsync();
+            people.Count.ShouldBe(1);
             people.Any(p => p.Name == "Douglas").ShouldBeTrue();
 
             //TenantId = TestDataBuilder.TenantId1
 
             _fakeCurrentTenant.Id.Returns(TestDataBuilder.TenantId1);
 
-            people = await _personRepository.ToListAsync();
-            people.Count().ShouldBe(2);
+            people = await _personRepository.GetListAsync();
+            people.Count.ShouldBe(2);
             people.Any(p => p.Name == TestDataBuilder.TenantId1 + "-Person1").ShouldBeTrue();
             people.Any(p => p.Name == TestDataBuilder.TenantId1 + "-Person2").ShouldBeTrue();
 
@@ -56,8 +56,8 @@ namespace Volo.Abp.CosmosDB.DataFiltering
 
             _fakeCurrentTenant.Id.Returns(TestDataBuilder.TenantId2);
 
-            people = await _personRepository.ToListAsync();
-            people.Count().ShouldBe(0);
+            people = await _personRepository.GetListAsync();
+            people.Count.ShouldBe(0);
         }
 
         [Fact]
@@ -68,12 +68,12 @@ namespace Volo.Abp.CosmosDB.DataFiltering
             using (_multiTenantFilter.Disable())
             {
                 //Filter disabled manually
-                people = (await _personRepository.ToListAsync()).ToList();
+                people = await _personRepository.GetListAsync();
                 people.Count.ShouldBe(3);
             }
 
             //Filter re-enabled automatically
-            people = (await _personRepository.ToListAsync()).ToList();
+            people = await _personRepository.GetListAsync();
             people.Count.ShouldBe(1);
         }
     }

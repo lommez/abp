@@ -75,30 +75,37 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
             await TriggerDomainEventsAsync(entity).ConfigureAwait(false);
 
-            var oldConcurrencyStamp = SetNewConcurrencyStamp(entity);
+            //var oldConcurrencyStamp = SetNewConcurrencyStamp(entity);
 
-            var document = await Collection.ReplaceDocumentAsync(
-                entity,
-                entity.Id,
-                CreatePartitionKey(entity),
-                cancellationToken: GetCancellationToken(cancellationToken)
-            ).ConfigureAwait(false);
+            var itemRequestOptions = new ItemRequestOptions();
+            itemRequestOptions.IfMatchEtag = entity._etag;
 
-            //if (result.MatchedCount <= 0)
-            //{
-            //    ThrowOptimisticConcurrencyException();
-            //}
+            try
+            {
+                var document = await Collection.ReplaceDocumentAsync(
+                    entity,
+                    entity.Id,
+                    CreatePartitionKey(entity),
+                    itemRequestOptions,
+                    cancellationToken: GetCancellationToken(cancellationToken)
+                ).ConfigureAwait(false);
 
-            return (TEntity)(dynamic)document;
-        }
+                //if (result.MatchedCount <= 0)
+                //{
+                //    ThrowOptimisticConcurrencyException();
+                //}
 
-        public virtual async Task DeleteAsync(
-            string id,
-            bool autoSave = false,
-            CancellationToken cancellationToken = default)
-        {
-            var entity = await FirstOrDefaultAsync(x => x.Id == id, cancellationToken: GetCancellationToken(cancellationToken));
-            await DeleteAsync(entity, GetCancellationToken(cancellationToken));
+                return (TEntity)(dynamic)document;
+            }
+            catch (CosmosException ex)
+            {
+                if (ex.StatusCode == HttpStatusCode.PreconditionFailed)
+                {
+                    throw new AbpDbConcurrencyException(ex.Message, ex);
+                }
+
+                throw new AbpException(ex.Message, ex);
+            }
         }
 
         public override async Task DeleteAsync(
@@ -108,13 +115,18 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             await ApplyAbpConceptsForDeletedEntityAsync(entity).ConfigureAwait(false);
             var oldConcurrencyStamp = SetNewConcurrencyStamp(entity);
 
+            var itemRequestOptions = new ItemRequestOptions();
+            itemRequestOptions.IfMatchEtag = entity._etag;
+
             if (entity is ISoftDelete softDeleteEntity)
             {
                 softDeleteEntity.IsDeleted = true;
+
                 var result = await Collection.ReplaceDocumentAsync(
                     entity,
                     entity.Id,
                     CreatePartitionKey(entity),
+                    itemRequestOptions,
                     cancellationToken: GetCancellationToken(cancellationToken)
                 ).ConfigureAwait(false);
 
@@ -128,6 +140,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
                 var result = await Collection.DeleteDocumentAsync(
                     entity.Id,
                     CreatePartitionKey(entity),
+                    itemRequestOptions,
                     cancellationToken: GetCancellationToken(cancellationToken)
                 ).ConfigureAwait(false);
 
@@ -142,40 +155,49 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             Expression<Func<TEntity, bool>> predicate,
             CancellationToken cancellationToken = default)
         {
-            var entities = GetAsyncEnumerable(expression: predicate, cancellationToken: GetCancellationToken(cancellationToken));
+            var entities = GetAsyncEnumerable(expression: predicate, cancellationToken: GetCancellationToken(cancellationToken)).ConfigureAwait(false);
 
             await foreach (var entity in entities)
             {
-                await DeleteAsync(entity, cancellationToken: GetCancellationToken(cancellationToken));
+                await DeleteAsync(entity, cancellationToken: GetCancellationToken(cancellationToken)).ConfigureAwait(false);
             }
         }
 
-        public override async Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default)
+        public override async Task<List<TEntity>> GetListAsync(
+            Expression<Func<TEntity, bool>> expression = null,
+            int? skip = null,
+            int? take = null,
+            Expression<Func<TEntity, object>> orderExpression = null,
+            bool orderDescending = false,
+            object partitionKeyValue = null,
+            CancellationToken cancellationToken = default)
         {
             var list = new List<TEntity>();
-            var data = GetAsyncEnumerable(cancellationToken: GetCancellationToken(cancellationToken));
+            var data = GetAsyncEnumerable(
+                expression,
+                skip,
+                take,
+                orderExpression,
+                orderDescending,
+                partitionKeyValue,
+                GetCancellationToken(cancellationToken)).ConfigureAwait(false);
+
             await foreach (var item in data)
             {
                 list.Add(item);
             }
+
             return list;
         }
 
-        public override async Task<long> GetCountAsync(CancellationToken cancellationToken = default)
+        public override async Task<long> GetCountAsync(Expression<Func<TEntity, bool>> expression = null, object partitionKeyValue = null, CancellationToken cancellationToken = default)
         {
-            var result = await GetListAsync(GetCancellationToken(cancellationToken)).ConfigureAwait(false);
+            var result = await GetListAsync(
+                expression: expression, 
+                partitionKeyValue: partitionKeyValue, 
+                cancellationToken: GetCancellationToken(cancellationToken)).ConfigureAwait(false);
+
             return result.Count;
-        }
-
-        public override async Task<IEnumerable<TEntity>> ToListAsync(object partitionKeyValue = null, CancellationToken cancellationToken = default)
-        {
-            var list = new List<TEntity>();
-            var data = GetAsyncEnumerable(cancellationToken: GetCancellationToken(cancellationToken));
-            await foreach (var item in data)
-            {
-                list.Add(item);
-            }
-            return list;
         }
 
         public override async Task<TEntity> FirstOrDefaultAsync(
@@ -184,7 +206,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             CancellationToken cancellationToken = default)
         {
             var list = new List<TEntity>();
-            var data = GetAsyncEnumerable(expression: expression, cancellationToken: GetCancellationToken(cancellationToken));
+            var data = GetAsyncEnumerable(expression: expression, cancellationToken: GetCancellationToken(cancellationToken)).ConfigureAwait(false);
 
             await foreach (var item in data)
             {
@@ -217,24 +239,9 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             return iterator.AsAsyncEnumerable(GetCancellationToken(cancellationToken));
         }
 
-        public override async Task<TEntity> GetAsync(
-            string id,
-            object partitionKeyValue,
-            CancellationToken cancellationToken = default)
-        {
-            var entity = await FindAsync(id, partitionKeyValue, GetCancellationToken(cancellationToken)).ConfigureAwait(false);
-
-            if (entity == null)
-            {
-                throw new EntityNotFoundException(typeof(TEntity), id);
-            }
-
-            return entity;
-        }
-
         public override async Task<TEntity> FindAsync(
             string id,
-            object partitionKeyValue,
+            object partitionKeyValue = null,
             CancellationToken cancellationToken = default)
         {
             TEntity entity = null;
@@ -247,7 +254,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             {
                 while (iterator.HasMoreResults)
                 {
-                    var response = await iterator.ReadNextAsync();
+                    var response = await iterator.ReadNextAsync().ConfigureAwait(false);
 
                     foreach (var result in response.Resource)
                     {

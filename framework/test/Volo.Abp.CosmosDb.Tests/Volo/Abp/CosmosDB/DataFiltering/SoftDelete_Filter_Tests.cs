@@ -37,8 +37,8 @@ namespace Volo.Abp.CosmosDB.DataFiltering
         [Fact]
         public async Task Should_Not_Get_Deleted_Entities_By_Default_ToList()
         {
-            var people = await PersonRepository.ToListAsync();
-            people.Count().ShouldBe(1);
+            var people = await PersonRepository.GetListAsync();
+            people.Count.ShouldBe(1);
             people.Any(p => p.Name == "Douglas").ShouldBeTrue();
         }
 
@@ -46,33 +46,33 @@ namespace Volo.Abp.CosmosDB.DataFiltering
         public async Task Should_Get_Deleted_Entities_When_Filter_Is_Disabled()
         {
             //Soft delete is enabled by default
-            var people = await PersonRepository.ToListAsync();
+            var people = await PersonRepository.GetListAsync();
             people.Any(p => !p.IsDeleted).ShouldBeTrue();
             people.Any(p => p.IsDeleted).ShouldBeFalse();
 
             using (DataFilter.Disable<ISoftDelete>())
             {
                 //Soft delete is disabled
-                people = await PersonRepository.ToListAsync();
+                people = await PersonRepository.GetListAsync();
                 people.Any(p => !p.IsDeleted).ShouldBeTrue();
                 people.Any(p => p.IsDeleted).ShouldBeTrue();
 
                 using (DataFilter.Enable<ISoftDelete>())
                 {
                     //Soft delete is enabled again
-                    people = await PersonRepository.ToListAsync();
+                    people = await PersonRepository.GetListAsync();
                     people.Any(p => !p.IsDeleted).ShouldBeTrue();
                     people.Any(p => p.IsDeleted).ShouldBeFalse();
                 }
 
                 //Soft delete is disabled (restored previous state)
-                people = await PersonRepository.ToListAsync();
+                people = await PersonRepository.GetListAsync();
                 people.Any(p => !p.IsDeleted).ShouldBeTrue();
                 people.Any(p => p.IsDeleted).ShouldBeTrue();
             }
 
             //Soft delete is enabled (restored previous state)
-            people = await PersonRepository.ToListAsync();
+            people = await PersonRepository.GetListAsync();
             people.Any(p => !p.IsDeleted).ShouldBeTrue();
             people.Any(p => p.IsDeleted).ShouldBeFalse();
         }

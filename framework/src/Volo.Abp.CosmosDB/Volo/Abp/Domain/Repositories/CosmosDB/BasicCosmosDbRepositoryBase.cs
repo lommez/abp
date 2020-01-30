@@ -34,29 +34,34 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
         public abstract Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default);
 
-        public virtual async Task DeleteAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default)
+        public async Task DeleteAsync(
+            string id,
+            object partitionKeyValue = null,
+            CancellationToken cancellationToken = default)
         {
-            var entity = await FindAsync(id, partitionKeyValue, cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (entity == null)
-            {
-                return;
-            }
-
-            await DeleteAsync(entity, cancellationToken).ConfigureAwait(false);
+            var entity = await GetAsync(id, partitionKeyValue, GetCancellationToken(cancellationToken)).ConfigureAwait(false);
+            await DeleteAsync(entity, GetCancellationToken(cancellationToken)).ConfigureAwait(false);
         }
 
-        public abstract Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default);
+        public abstract Task<List<TEntity>> GetListAsync(
+            Expression<Func<TEntity, bool>> expression = null,
+            int? skip = null,
+            int? take = null,
+            Expression<Func<TEntity, object>> orderExpression = null,
+            bool orderDescending = false,
+            object partitionKeyValue = null,
+            CancellationToken cancellationToken = default);
 
-        public abstract Task<long> GetCountAsync(CancellationToken cancellationToken = default);
+        public abstract Task<long> GetCountAsync(Expression<Func<TEntity, bool>> expression = null, object partitionKeyValue = null, CancellationToken cancellationToken = default);
 
         protected virtual CancellationToken GetCancellationToken(CancellationToken prefferedValue = default)
         {
             return CancellationTokenProvider.FallbackToProvider(prefferedValue);
         }
 
-        public virtual Task<TEntity> GetAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default)
+        public virtual async Task<TEntity> GetAsync(string id, object partitionKeyValue = null, CancellationToken cancellationToken = default)
         {
-            var entityFound = FindAsync(id, partitionKeyValue);
+            var entityFound = await FindAsync(id, partitionKeyValue).ConfigureAwait(false);
 
             if (entityFound == null)
             {
@@ -66,9 +71,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
             return entityFound;
         }
 
-        public abstract Task<TEntity> FindAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default);
-
-        public abstract Task<IEnumerable<TEntity>> ToListAsync(object partitionKeyValue = null, CancellationToken cancellationToken = default);
+        public abstract Task<TEntity> FindAsync(string id, object partitionKeyValue = null, CancellationToken cancellationToken = default);
 
         public abstract Task<TEntity> FirstOrDefaultAsync(Expression<Func<TEntity, bool>> expression = null, object partitionKeyValue = null, CancellationToken cancellationToken = default);
 

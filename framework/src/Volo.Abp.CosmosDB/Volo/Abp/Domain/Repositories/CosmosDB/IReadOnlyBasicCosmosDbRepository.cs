@@ -14,14 +14,30 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// <summary>
         /// Gets a list of all the entities.
         /// </summary>
+        /// <param name="expression">A condition to filter entities</param>
+        /// <param name="skip">Bypasses a specified number of elements in a sequence and then returns the remaining elements</param>
+        /// <param name="take">Returns a specified number of contiguous elements from the start of a sequence</param>
+        /// <param name="orderExpression">Sorts the elements of a sequence in ascending order according to the expression</param>
+        /// <param name="orderDescending">Sorts the elements of a sequence in descending order</param>
+        /// <param name="partitionKeyValue">Value of the partition key</param>
         /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
         /// <returns>Entity</returns>
-        Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default);
+        Task<List<TEntity>> GetListAsync(
+            Expression<Func<TEntity, bool>> expression = null,
+            int? skip = null,
+            int? take = null,
+            Expression<Func<TEntity, object>> orderExpression = null,
+            bool orderDescending = false,
+            object partitionKeyValue = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets total count of all entities.
         /// </summary>
-        Task<long> GetCountAsync(CancellationToken cancellationToken = default);
+        /// <param name="expression">A condition to filter entities</param>
+        /// <param name="partitionKeyValue">Value of the partition key</param>
+        /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
+        Task<long> GetCountAsync(Expression<Func<TEntity, bool>> expression = null, object partitionKeyValue = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets an entity with given primary key.
@@ -32,7 +48,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
         /// <returns>Entity</returns>
         [NotNull]
-        Task<TEntity> GetAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default);
+        Task<TEntity> GetAsync(string id, object partitionKeyValue = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets an entity with given primary key or null if not found.
@@ -41,10 +57,14 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// <param name="partitionKeyValue">Value of the partition key</param>
         /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
         /// <returns>Entity or null</returns>
-        Task<TEntity> FindAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default);
+        Task<TEntity> FindAsync(string id, object partitionKeyValue = null, CancellationToken cancellationToken = default);
 
-        Task<TEntity> FirstOrDefaultAsync(Expression<Func<TEntity, bool>> expression = null, object partitionKeyValue = null, CancellationToken cancellationToken = default); 
-
-        Task<IEnumerable<TEntity>> ToListAsync(object partitionKeyValue = null, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Gets total count of all entities.
+        /// </summary>
+        /// <param name="expression">A condition to filter entities</param>
+        /// <param name="partitionKeyValue">Value of the partition key</param>
+        /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
+        Task<TEntity> FirstOrDefaultAsync(Expression<Func<TEntity, bool>> expression = null, object partitionKeyValue = null, CancellationToken cancellationToken = default);
     }
 }

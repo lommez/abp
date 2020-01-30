@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;
 using Volo.Abp.Domain.Entities.Auditing;
@@ -26,7 +27,23 @@ namespace Volo.Abp.TestApp.Domain
 
         public virtual Collection<Phone> Phones { get; set; }
 
-        public string PartitionKeyValue => LastName;        
+        [JsonIgnore]
+        public string PartitionKeyValue => LastName;
+
+        [JsonProperty("_rid")]
+        public string _rid { get; protected set; }
+
+        [JsonProperty("_self")]
+        public string _self { get; protected set; }
+
+        [JsonProperty("_etag")]
+        public string _etag { get; protected set; }
+
+        [JsonProperty("_attachments")]
+        public string _attachments { get; protected set; }
+
+        [JsonProperty("_ts")]
+        public long _ts { get; protected set; }
 
         private Person()
         {

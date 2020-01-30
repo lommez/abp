@@ -37,6 +37,6 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
         /// <param name="id">Primary key of the entity</param>
         /// <param name="partitionKeyValue">Value of the partition key</param>
         /// <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken" /> to observe while waiting for the task to complete.</param>
-        Task DeleteAsync(string id, object partitionKeyValue, CancellationToken cancellationToken = default);  //TODO: Return true if deleted
+        Task DeleteAsync(string id, object partitionKeyValue = null, CancellationToken cancellationToken = default);  //TODO: Return true if deleted
     }
 }

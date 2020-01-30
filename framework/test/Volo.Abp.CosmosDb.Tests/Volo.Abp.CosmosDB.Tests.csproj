@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\src\Volo.Abp.CosmosDB\Volo.Abp.CosmosDB.csproj" />
     <ProjectReference Include="..\..\src\Volo.Abp.Ddd.Application.Contracts\Volo.Abp.Ddd.Application.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Volo.Abp.Ddd.Application\Volo.Abp.Ddd.Application.csproj" />
+    <ProjectReference Include="..\..\src\Volo.Abp.Specifications\Volo.Abp.Specifications.csproj" />
     <ProjectReference Include="..\AbpTestBase\AbpTestBase.csproj" />
   </ItemGroup>
 

@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -20,7 +21,6 @@ namespace Volo.Abp.TestApp.Domain
 
         private Phone()
         {
-            
         }
 
         public Phone(string personId, string number, PhoneType type = PhoneType.Mobile)
@@ -32,7 +32,7 @@ namespace Volo.Abp.TestApp.Domain
 
         public override object[] GetKeys()
         {
-            return new object[] {PersonId, Number};
+            return new object[] { PersonId, Number };
         }
     }
 
@@ -46,11 +46,26 @@ namespace Volo.Abp.TestApp.Domain
 
         public virtual List<OrderLine> OrderLines { get; protected set; }
 
+        [JsonIgnore]
         public string PartitionKeyValue => ReferenceNo;
+
+        [JsonProperty("_rid")]
+        public string _rid { get; protected set; }
+
+        [JsonProperty("_self")]
+        public string _self { get; protected set; }
+
+        [JsonProperty("_etag")]
+        public string _etag { get; protected set; }
+
+        [JsonProperty("_attachments")]
+        public string _attachments { get; protected set; }
+
+        [JsonProperty("_ts")]
+        public long _ts { get; protected set; }
 
         protected Order()
         {
-            
         }
 
         public Order(string id, string referenceNo)
@@ -94,7 +109,6 @@ namespace Volo.Abp.TestApp.Domain
 
         protected OrderLine()
         {
-
         }
 
         public OrderLine(string orderId, string productId, int count)
@@ -111,7 +125,7 @@ namespace Volo.Abp.TestApp.Domain
 
         public override object[] GetKeys()
         {
-            return new object[] {OrderId, ProductId};
+            return new object[] { OrderId, ProductId };
         }
     }
 }

@@ -74,13 +74,6 @@ namespace Volo.Abp.CosmosDB.DependencyInjection
             {
                 Options.Services.TryAddTransient(readOnlyBasicRepositoryInterface, repositoryImplementationType);
 
-                //IReadOnlyRepository<TEntity>
-                var readOnlyRepositoryInterface = typeof(IReadOnlyCosmosDBRepository<,>).MakeGenericType(entityType, partitionKeyType);
-                if (readOnlyRepositoryInterface.IsAssignableFrom(repositoryImplementationType))
-                {
-                    Options.Services.TryAddTransient(readOnlyRepositoryInterface, repositoryImplementationType);
-                }
-
                 //IBasicRepository<TEntity>
                 var basicRepositoryInterface = typeof(IBasicCosmosDBRepository<,>).MakeGenericType(entityType, partitionKeyType);
                 if (basicRepositoryInterface.IsAssignableFrom(repositoryImplementationType))
