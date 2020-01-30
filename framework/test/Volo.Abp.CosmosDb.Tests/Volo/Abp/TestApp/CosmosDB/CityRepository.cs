@@ -15,9 +15,7 @@ namespace Volo.Abp.TestApp.CosmosDB
 
         public Task<City> FindByNameAsync(string name)
         {
-            var data = Collection.GetQueryable();
-            var city = data.Where(x => x.Name == name).FirstOrDefault();
-            return Task.FromResult(city);
+            return FirstOrDefaultAsync(x => x.Name == name);
         }
 
         public async Task<List<Person>> GetPeopleInTheCityAsync(string cityName)

@@ -75,7 +75,7 @@ namespace Volo.Abp.Domain.Repositories.CosmosDB
 
             await TriggerDomainEventsAsync(entity).ConfigureAwait(false);
 
-            //var oldConcurrencyStamp = SetNewConcurrencyStamp(entity);
+            var oldConcurrencyStamp = SetNewConcurrencyStamp(entity);
 
             var document = await Collection.ReplaceDocumentAsync(
                 entity,
